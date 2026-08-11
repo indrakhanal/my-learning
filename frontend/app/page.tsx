@@ -1,8 +1,19 @@
 import { NoteList } from "../components/NoteList";
-const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+const api = process.env.NEXT_PUBLIC_API_URL;
 export const dynamic = "force-dynamic";
 export default async function Home() { 
-  const notes = await fetch(`${api}/notes`, { next: { revalidate: 60 } }).then(r => r.ok ? r.json() : []); 
+  let notes = [];
+  if (api) {
+    try {
+      const response = await fetch(`${api}/notes`, { cache: "no-store" });
+      if (response.ok) notes = await response.json();
+      else console.error(`Notes API returned ${response.status}`);
+    } catch (error) {
+      console.error("Notes API is unavailable", error);
+    }
+  } else {
+    console.error("NEXT_PUBLIC_API_URL is not configured");
+  }
   return (
     <>
       <section className="hero">
