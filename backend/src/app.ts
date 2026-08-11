@@ -1,6 +1,5 @@
 import express from "express";
 import cors, { type CorsOptions } from "cors";
-import path from "path";
 import { authRouter } from "./routes/auth.js";
 import { notesRouter } from "./routes/notes.js";
 import { tagsRouter } from "./routes/tags.js";
@@ -24,7 +23,6 @@ const corsOptions: CorsOptions = {
 export const app = express();
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
-app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRouter);
 app.use("/api/notes", notesRouter);
