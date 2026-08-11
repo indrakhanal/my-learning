@@ -1,0 +1,11 @@
+import { Router } from "express";
+import multer from "multer";
+import { randomUUID } from "crypto";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import { prisma } from "../lib/prisma.js";
+import { requireAdmin } from "../middleware/auth.js";
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: (_r, f, cb) => cb(null, /^(image\/(png|jpeg|webp|gif)|application\/pdf)$/.test(f.mimetype)) });
+const uploadRoot = path.resolve(process.cwd(), "uploads");
+export const uploadsRouter = Router();
+uploadsRouter.post("/:noteId", requireAdmin, upload.single("file"), async (req, res, next) => { try { if (!req.file) return res.status(400).json({ error: "A supported file is required" }); const note = await prisma.note.findUnique({ where: { id: String(req.params.noteId) } }); if (!note) return res.status(404).json({ error: "Note not found" }); const filename = `${randomUUID()}-${req.file.originalname.replace(/[^\w.-]/g, "_")}`; const key = path.posix.join("notes", note.id, filename); const destination = path.join(uploadRoot, "notes", note.id, filename); await mkdir(path.dirname(destination), { recursive: true }); await writeFile(destination, req.file.buffer); const url = `${process.env.APP_URL ?? "http://localhost:4000"}/uploads/${key}`; res.status(201).json(await prisma.attachment.create({ data: { noteId: note.id, filename: req.file.originalname, mimeType: req.file.mimetype, size: req.file.size, key, url, kind: req.file.mimetype.startsWith("image/") ? "IMAGE" : "FILE" } })); } catch (e) { next(e); } });

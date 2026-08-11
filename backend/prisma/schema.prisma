@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+}
+
+enum NoteStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum AttachmentKind {
+  IMAGE
+  FILE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  role         Role     @default(ADMIN)
+  notes        Note[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Note {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  title       String
+  content     String      @db.Text
+  status      NoteStatus  @default(DRAFT)
+  authorId    String
+  author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tags        NoteTag[]
+  attachments Attachment[]
+  resources   Resource[]
+  versions    NoteVersion[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([status, updatedAt])
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  notes     NoteTag[]
+  createdAt DateTime  @default(now())
+}
+
+model NoteTag {
+  noteId String
+  tagId  String
+  note   Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+}
+
+model Attachment {
+  id        String         @id @default(cuid())
+  noteId    String
+  note      Note           @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  filename  String
+  mimeType  String
+  size      Int
+  key       String         @unique
+  url       String
+  kind      AttachmentKind
+  createdAt DateTime       @default(now())
+}
+
+model Resource {
+  id        String   @id @default(cuid())
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  label     String
+  url       String
+  createdAt DateTime @default(now())
+}
+
+model NoteVersion {
+  id        String     @id @default(cuid())
+  noteId    String
+  note      Note       @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  title     String
+  content   String     @db.Text
+  status    NoteStatus
+  createdAt DateTime   @default(now())
+}

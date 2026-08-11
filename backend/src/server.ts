@@ -1,0 +1,1 @@
+import "dotenv/config"; import { app } from "./app.js"; if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is required"); app.listen(Number(process.env.API_PORT ?? 4000), () => console.log(`API listening on ${process.env.API_PORT ?? 4000}`));
