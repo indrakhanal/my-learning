@@ -1,1 +1,19 @@
-{"name":"Learning Notes","short_name":"Notes","description":"Your personal learning notes.","start_url":"/","display":"standalone","background_color":"#f4f6fb","theme_color":"#3f5dcc","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "Learning Notes",
+  "short_name": "Notes",
+  "description": "A curated personal knowledge base — notes published thoughtfully.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "orientation": "portrait-primary",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

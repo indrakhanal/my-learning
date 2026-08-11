@@ -7,15 +7,20 @@ export function AdminDashboard({ notes }: { notes: Note[] }) {
 
   return (
     <div className="dashboard-stats">
-      <div className="glass-card stat-card">
+      <div className="glass-card stat-card total">
+        <div className="stat-icon" aria-hidden="true">📝</div>
         <div className="stat-value">{totalNotes}</div>
         <div className="stat-label">Total Notes</div>
       </div>
-      <div className="glass-card stat-card">
+
+      <div className="glass-card stat-card published">
+        <div className="stat-icon" aria-hidden="true">✅</div>
         <div className="stat-value">{publishedNotes}</div>
         <div className="stat-label">Published</div>
       </div>
-      <div className="glass-card stat-card">
+
+      <div className="glass-card stat-card draft">
+        <div className="stat-icon" aria-hidden="true">✏️</div>
         <div className="stat-value">{draftNotes}</div>
         <div className="stat-label">Drafts</div>
       </div>
