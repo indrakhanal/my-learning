@@ -35,7 +35,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
             {/* Desktop nav (hidden on mobile — use bottom-nav instead) */}
             <nav className="header-nav" aria-label="Main navigation">
-              <Link href="/">Home</Link>
+              <Link href="/">Notes</Link>
+              <Link href="/courses">Courses</Link>
               <Link href="/about">About</Link>
               <Link href="/admin" className="btn-primary" style={{ minHeight: "36px", padding: "0.35rem 1rem", fontSize: "0.875rem" }}>
                 Admin
@@ -58,7 +59,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
             </span>
-            Home
+            Notes
+          </Link>
+          <Link href="/courses" className="bottom-nav-link" id="bnav-courses">
+            <span className="bottom-nav-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+              </svg>
+            </span>
+            Courses
           </Link>
           <Link href="/about" className="bottom-nav-link" id="bnav-about">
             <span className="bottom-nav-icon" aria-hidden="true">

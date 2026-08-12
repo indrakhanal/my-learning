@@ -28,6 +28,7 @@ model User {
   passwordHash String
   role         Role     @default(ADMIN)
   notes        Note[]
+  courses      Course[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -96,4 +97,65 @@ model NoteVersion {
   content   String     @db.Text
   status    NoteStatus
   createdAt DateTime   @default(now())
+}
+
+// ── Courses ────────────────────────────────────────────────────────────────
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  title       String
+  description String       @db.Text
+  coverUrl    String?
+  status      CourseStatus @default(DRAFT)
+  authorId    String
+  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  chapters    Chapter[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([status, updatedAt])
+}
+
+model Chapter {
+  id          String              @id @default(cuid())
+  courseId    String
+  course      Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  content     String              @db.Text
+  order       Int
+  resources   ChapterResource[]
+  attachments ChapterAttachment[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@unique([courseId, order])
+  @@index([courseId, order])
+}
+
+model ChapterResource {
+  id        String   @id @default(cuid())
+  chapterId String
+  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  label     String
+  url       String
+  createdAt DateTime @default(now())
+}
+
+model ChapterAttachment {
+  id        String         @id @default(cuid())
+  chapterId String
+  chapter   Chapter        @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  filename  String
+  mimeType  String
+  size      Int
+  key       String         @unique
+  url       String
+  kind      AttachmentKind
+  createdAt DateTime       @default(now())
 }

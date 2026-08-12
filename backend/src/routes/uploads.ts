@@ -11,11 +11,11 @@ const upload = multer({
   fileFilter: (_request, file, callback) => callback(null, /^(image\/(png|jpeg|webp|gif)|application\/pdf)$/.test(file.mimetype))
 });
 
-function uploadToCloudinary(file: Express.Multer.File, noteId: string) {
+function uploadToCloudinary(file: Express.Multer.File, folder: string) {
   const resourceType = file.mimetype === "application/pdf" ? "raw" : "image";
   return new Promise<{ secureUrl: string; publicId: string }>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({
-      folder: `learning-notes/${noteId}`,
+      folder,
       public_id: randomUUID(),
       resource_type: resourceType as "image" | "raw",
       use_filename: false,
@@ -30,16 +30,40 @@ function uploadToCloudinary(file: Express.Multer.File, noteId: string) {
 }
 
 export const uploadsRouter = Router();
+
+// Note uploads
 uploadsRouter.post("/:noteId", requireAdmin, upload.single("file"), async (req, res, next) => {
   try {
     if (!process.env.CLOUDINARY_URL) return res.status(503).json({ error: "Cloudinary storage is not configured" });
     if (!req.file) return res.status(400).json({ error: "A supported image or PDF is required" });
     const note = await prisma.note.findUnique({ where: { id: String(req.params.noteId) } });
     if (!note) return res.status(404).json({ error: "Note not found" });
-    const asset = await uploadToCloudinary(req.file, note.id);
+    const asset = await uploadToCloudinary(req.file, `learning-notes/${note.id}`);
     res.status(201).json(await prisma.attachment.create({
       data: {
         noteId: note.id,
+        filename: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        key: asset.publicId,
+        url: asset.secureUrl,
+        kind: req.file.mimetype.startsWith("image/") ? "IMAGE" : "FILE"
+      }
+    }));
+  } catch (error) { next(error); }
+});
+
+// Chapter uploads
+uploadsRouter.post("/chapter/:chapterId", requireAdmin, upload.single("file"), async (req, res, next) => {
+  try {
+    if (!process.env.CLOUDINARY_URL) return res.status(503).json({ error: "Cloudinary storage is not configured" });
+    if (!req.file) return res.status(400).json({ error: "A supported image or PDF is required" });
+    const chapter = await prisma.chapter.findUnique({ where: { id: String(req.params.chapterId) } });
+    if (!chapter) return res.status(404).json({ error: "Chapter not found" });
+    const asset = await uploadToCloudinary(req.file, `learning-notes/chapters/${chapter.id}`);
+    res.status(201).json(await prisma.chapterAttachment.create({
+      data: {
+        chapterId: chapter.id,
         filename: req.file.originalname,
         mimeType: req.file.mimetype,
         size: req.file.size,

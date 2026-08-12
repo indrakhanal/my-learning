@@ -4,6 +4,7 @@ import { authRouter } from "./routes/auth.js";
 import { notesRouter } from "./routes/notes.js";
 import { tagsRouter } from "./routes/tags.js";
 import { uploadsRouter } from "./routes/uploads.js";
+import { coursesRouter } from "./routes/courses.js";
 
 const normalizeOrigin = (value: string) => value.trim().replace(/\/$/, "");
 const allowedOrigins = new Set((process.env.WEB_ORIGIN ?? "http://localhost:3000").split(",").map(normalizeOrigin).filter(Boolean));
@@ -28,6 +29,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/notes", notesRouter);
 app.use("/api/tags", tagsRouter);
 app.use("/api/uploads", uploadsRouter);
+app.use("/api/courses", coursesRouter);
 app.use((error: any, _req: any, res: any, _next: any) => {
   if (error?.name === "ZodError") return res.status(400).json({ error: "Validation failed", details: error.issues });
   if (error?.code === "P2002") return res.status(409).json({ error: "A record with that value already exists" });
