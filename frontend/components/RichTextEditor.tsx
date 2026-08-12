@@ -90,7 +90,7 @@ export function RichTextEditor({
   async function handleImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const image = event.target.files?.[0];
     event.target.value = "";
-    if (!image || !onImageUpload) return;
+    if (!image || !onImageUpload || !editor) return;
     setUploading(true);
     try {
       const url = await onImageUpload(image);
