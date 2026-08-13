@@ -12,11 +12,13 @@ const upload = multer({
 });
 
 function uploadToCloudinary(file: Express.Multer.File, folder: string) {
-  const resourceType = file.mimetype === "application/pdf" ? "raw" : "image";
+  const isPdf = file.mimetype === "application/pdf";
+  const resourceType = isPdf ? "raw" : "image";
+  
   return new Promise<{ secureUrl: string; publicId: string }>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({
       folder,
-      public_id: randomUUID(),
+      public_id: isPdf ? `${randomUUID()}.pdf` : randomUUID(),
       resource_type: resourceType as "image" | "raw",
       use_filename: false,
       unique_filename: true,

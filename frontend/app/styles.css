@@ -971,7 +971,7 @@ main {
 /* Dashboard Stats */
 .dashboard-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.85rem;
   margin-bottom: 0;
 }
@@ -996,6 +996,8 @@ main {
 .stat-card.total::before { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
 .stat-card.published::before { background: linear-gradient(90deg, var(--green), #34d399); }
 .stat-card.draft::before { background: linear-gradient(90deg, var(--amber), #fcd34d); }
+.stat-card.course::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+.stat-card.course-chapters::before { background: linear-gradient(90deg, #ec4899, #f472b6); }
 
 .stat-icon {
   width: 36px;

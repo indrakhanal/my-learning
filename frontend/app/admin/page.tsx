@@ -209,7 +209,7 @@ export default function Admin() {
                 <p>Welcome back! Here's an overview of your content.</p>
               </div>
             </div>
-            <AdminDashboard notes={notes} />
+            <AdminDashboard notes={notes} courses={courses} />
             {message && <p className="form-message" style={{ marginTop: "1rem" }}>{message}</p>}
           </div>
         )}
