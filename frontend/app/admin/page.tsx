@@ -34,7 +34,7 @@ export default function Admin() {
   const fetchNotes = useCallback(async () => {
     if (!token) return;
     try {
-      const r = await fetch(`${api}/notes`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(`${api}/notes`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setNotes(await r.json());
     } catch (e) { console.error(e); }
   }, [token]);
@@ -42,7 +42,7 @@ export default function Admin() {
   const fetchCourses = useCallback(async () => {
     if (!token) return;
     try {
-      const r = await fetch(`${api}/courses`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(`${api}/courses`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setCourses(await r.json());
     } catch (e) { console.error(e); }
   }, [token]);
@@ -50,7 +50,7 @@ export default function Admin() {
   const fetchChapters = useCallback(async (courseId: string) => {
     if (!token) return;
     try {
-      const r = await fetch(`${api}/courses/${courseId}/chapters`, { headers: { Authorization: `Bearer ${token}` } });
+      const r = await fetch(`${api}/courses/${courseId}/chapters`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setChapters(await r.json());
     } catch (e) { console.error(e); }
   }, [token]);
@@ -294,8 +294,23 @@ export default function Admin() {
             </div>
             
             {message && <p className="form-message" style={{ marginBottom: "1rem" }}>{message}</p>}
+
+            <div className="admin-chapter-cards" aria-label="Chapters">
+              {chapters.map((chapter, index) => (
+                <article className="admin-chapter-card" key={chapter.id}>
+                  <div><span className="chapter-order">Chapter {chapter.order}</span><h2>{chapter.title}</h2></div>
+                  <div className="admin-chapter-card-actions">
+                    <button className="btn-secondary btn-small" disabled={index === 0} onClick={() => reorderChapter(selectedCourseId, chapter.id, "up")}>Move up</button>
+                    <button className="btn-secondary btn-small" disabled={index === chapters.length - 1} onClick={() => reorderChapter(selectedCourseId, chapter.id, "down")}>Move down</button>
+                    <button className="btn-secondary btn-small" onClick={() => { setEditingChapterId(chapter.id); setView("chapter-editor"); }}>Edit</button>
+                    <button className="btn-danger btn-small" onClick={() => { if (window.confirm("Delete chapter?")) deleteChapter(selectedCourseId, chapter.id); }}>Delete</button>
+                  </div>
+                </article>
+              ))}
+              {chapters.length === 0 && <div className="empty-state"><p>No chapters yet. Select “New Chapter” to add the first one.</p></div>}
+            </div>
             
-            <div className="admin-table-wrap glass-card">
+            <div className="admin-table-wrap glass-card admin-chapter-table">
               <table className="admin-table">
                 <thead>
                   <tr>

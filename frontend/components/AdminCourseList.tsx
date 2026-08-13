@@ -29,8 +29,18 @@ export function AdminCourseList({
     new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
-    <div className="admin-table-wrap glass-card">
-      <table className="admin-table">
+    <>
+      <div className="admin-course-cards" aria-label="Courses">
+        {courses.map(course => (
+          <article className="admin-course-card" key={course.id}>
+            <div className="admin-course-card-heading"><h2>{course.title || "Untitled"}</h2><span className={`status-pill ${course.status === "PUBLISHED" ? "published" : "draft"}`}>{course.status === "PUBLISHED" ? "Published" : "Draft"}</span></div>
+            <p>{course._count.chapters} {course._count.chapters === 1 ? "chapter" : "chapters"} · Updated {formatDate(course.updatedAt)}</p>
+            <div className="admin-course-card-actions"><button className="btn-secondary btn-small" onClick={() => onManageChapters(course.id)}>Manage chapters</button><button className="btn-secondary btn-small" onClick={() => onEdit(course.id)}>Edit course</button><button className="btn-danger btn-small" onClick={() => { if (window.confirm("Delete course and all chapters?")) onDelete(course.id); }}>Delete</button></div>
+          </article>
+        ))}
+      </div>
+      <div className="admin-table-wrap glass-card admin-course-table">
+        <table className="admin-table">
         <thead>
           <tr>
             <th>Title</th>
@@ -67,7 +77,8 @@ export function AdminCourseList({
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+    </>
   );
 }
