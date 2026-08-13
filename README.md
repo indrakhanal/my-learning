@@ -69,6 +69,7 @@ The interface is responsive and includes a web app manifest plus offline service
 | GET/POST | `/api/notes` | List public notes / create a note |
 | POST | `/api/notes/import` | Create a note from Markdown |
 | GET/PUT/DELETE | `/api/notes/:id` | Read / update / delete a note |
+| DELETE | `/api/notes/:id/attachments/:attachmentId` | Delete one uploaded attachment |
 | GET | `/api/notes/:id/export/markdown` | Download Markdown |
 | GET | `/api/notes/:id/export/pdf` | Download a basic PDF |
 | GET/POST | `/api/tags` | List / create tags |

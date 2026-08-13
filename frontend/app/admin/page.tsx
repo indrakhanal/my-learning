@@ -81,6 +81,14 @@ export default function Admin() {
     fetchNotes();
   }
 
+  async function deleteNote(id: string) {
+    const response = await fetch(`${api}/notes/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) return setMessage((await response.json()).error ?? "Could not delete note");
+    setMessage("Note deleted.");
+    if (editingNoteId === id) setView("notes");
+    fetchNotes();
+  }
+
   async function deleteCourse(id: string) {
     const response = await fetch(`${api}/courses/${id}`, {
       method: "DELETE",
@@ -230,6 +238,7 @@ export default function Admin() {
               notes={notes}
               onEdit={(id) => { setEditingNoteId(id); setView("editor"); }}
               onPublish={publishNote}
+              onDelete={deleteNote}
             />
           </div>
         )}

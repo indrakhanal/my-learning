@@ -4,10 +4,12 @@ export function AdminNoteList({
   notes,
   onEdit,
   onPublish,
+  onDelete,
 }: {
   notes: Note[];
   onEdit: (id: string) => void;
   onPublish: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   if (!notes.length) {
     return (
@@ -55,6 +57,7 @@ export function AdminNoteList({
                     Publish
                   </button>
                 )}
+                <button className="btn-danger btn-small" onClick={() => { if (window.confirm(`Delete “${note.title}” permanently?`)) onDelete(note.id); }} aria-label={`Delete ${note.title}`}>Delete</button>
               </div>
             </div>
           </div>
@@ -100,6 +103,7 @@ export function AdminNoteList({
                         Publish
                       </button>
                     )}
+                    <button className="btn-danger btn-small" onClick={() => { if (window.confirm(`Delete “${note.title}” permanently?`)) onDelete(note.id); }} aria-label={`Delete ${note.title}`}>Delete</button>
                   </div>
                 </td>
               </tr>

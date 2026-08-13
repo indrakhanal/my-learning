@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { NoteStatus } from "@prisma/client";
 import PDFDocument from "pdfkit";
+import { v2 as cloudinary } from "cloudinary";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { slugify } from "../lib/slug.js";
@@ -18,6 +19,20 @@ notesRouter.post("/import", requireAdmin, async (req: AuthRequest, res, next) =>
 notesRouter.get("/:id", optionalAdmin, async (req: AuthRequest, res, next) => { try { const note = await prisma.note.findUnique({ where: { id: String(req.params.id) }, include }); if (!note || (note.status !== "PUBLISHED" && !req.user)) return res.status(404).json({ error: "Note not found" }); res.json(note); } catch (error) { next(error); } });
 notesRouter.post("/", requireAdmin, async (req: AuthRequest, res, next) => { try { const data = input.parse(req.body); const note = await prisma.note.create({ data: { ...data, slug: await uniqueSlug(data.title), authorId: req.user!.id, tags: tagWrites(data.tags), resources: { create: data.resources } }, include }); res.status(201).json(note); } catch (error) { next(error); } });
 notesRouter.put("/:id", requireAdmin, async (req, res, next) => { try { const data = input.parse(req.body); const old = await prisma.note.findUnique({ where: { id: String(req.params.id) } }); if (!old) return res.status(404).json({ error: "Note not found" }); const note = await prisma.$transaction(async tx => { await tx.noteVersion.create({ data: { noteId: old.id, title: old.title, content: old.content, status: old.status } }); return tx.note.update({ where: { id: old.id }, data: { title: data.title, content: data.content, status: data.status, tags: { deleteMany: {}, ...tagWrites(data.tags) }, resources: { deleteMany: {}, create: data.resources } }, include }); }); res.json(note); } catch (error) { next(error); } });
-notesRouter.delete("/:id", requireAdmin, async (req, res, next) => { try { await prisma.note.delete({ where: { id: String(req.params.id) } }); res.status(204).end(); } catch (error) { next(error); } });
+notesRouter.delete("/:id/attachments/:attachmentId", requireAdmin, async (req, res, next) => { try {
+  const noteId = String(req.params.id); const attachmentId = String(req.params.attachmentId);
+  const attachment = await prisma.attachment.findFirst({ where: { id: attachmentId, noteId } });
+  if (!attachment) return res.status(404).json({ error: "Attachment not found" });
+  if (process.env.CLOUDINARY_URL) await cloudinary.uploader.destroy(attachment.key, { resource_type: attachment.kind === "IMAGE" ? "image" : "raw", invalidate: true });
+  await prisma.attachment.delete({ where: { id: attachment.id } });
+  res.status(204).end();
+} catch (error) { next(error); } });
+notesRouter.delete("/:id", requireAdmin, async (req, res, next) => { try {
+  const note = await prisma.note.findUnique({ where: { id: String(req.params.id) }, include: { attachments: true } });
+  if (!note) return res.status(404).json({ error: "Note not found" });
+  if (process.env.CLOUDINARY_URL) await Promise.all(note.attachments.map(attachment => cloudinary.uploader.destroy(attachment.key, { resource_type: attachment.kind === "IMAGE" ? "image" : "raw", invalidate: true })));
+  await prisma.note.delete({ where: { id: note.id } });
+  res.status(204).end();
+} catch (error) { next(error); } });
 notesRouter.get("/:id/export/markdown", requireAdmin, async (req, res, next) => { try { const note = await prisma.note.findUnique({ where: { id: String(req.params.id) }, include: { resources: true } }); if (!note) return res.status(404).json({ error: "Note not found" }); const links = note.resources.map(resource => `- [${resource.label}](${resource.url})`).join("\n"); res.type("text/markdown").attachment(`${note.slug}.md`).send(`# ${note.title}\n\n${note.content}\n\n${links}`); } catch (error) { next(error); } });
 notesRouter.get("/:id/export/pdf", requireAdmin, async (req, res, next) => { try { const note = await prisma.note.findUnique({ where: { id: String(req.params.id) } }); if (!note) return res.status(404).json({ error: "Note not found" }); const pdf = new PDFDocument({ margin: 54 }); res.type("application/pdf").attachment(`${note.slug}.pdf`); pdf.pipe(res); pdf.fontSize(22).text(note.title); pdf.moveDown(); pdf.fontSize(11).text(note.content.replace(/<[^>]*>/g, " ")); pdf.end(); } catch (error) { next(error); } });
