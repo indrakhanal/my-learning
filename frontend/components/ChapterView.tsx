@@ -52,12 +52,12 @@ export function ChapterView({ chapter }: { chapter: Chapter }) {
       <div className={hasSidebar ? "note-detail-layout" : "note-detail-layout no-sidebar"}>
         {/* ── Main Article ── */}
         <article className="glass-card note-article">
-          <nav className="breadcrumb" aria-label="Breadcrumb" style={{ marginBottom: "1.5rem", fontSize: "0.9rem" }}>
-            <Link href="/courses" style={{ color: "var(--text-muted)", textDecoration: "none" }}>Courses</Link>
-            <span style={{ color: "var(--text-muted)", margin: "0 0.5rem" }}>/</span>
-            <Link href={`/courses/${chapter.course.slug}`} style={{ color: "var(--text-muted)", textDecoration: "none" }}>{chapter.course.title}</Link>
-            <span style={{ color: "var(--text-muted)", margin: "0 0.5rem" }}>/</span>
-            <span style={{ color: "var(--text)" }}>Chapter {chapter.order}</span>
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link href="/courses">Courses</Link>
+            <span aria-hidden="true">/</span>
+            <Link href={`/courses/${chapter.course.slug}`}>{chapter.course.title}</Link>
+            <span aria-hidden="true">/</span>
+            <span>Chapter {chapter.order}</span>
           </nav>
           
           <p className="note-eyebrow">
@@ -73,7 +73,7 @@ export function ChapterView({ chapter }: { chapter: Chapter }) {
 
         {/* ── Sidebar ── */}
         {hasSidebar && (
-          <aside aria-label="Chapter resources">
+          <aside className="note-sidebar" aria-label="Chapter resources">
             <div className="glass-card sidebar-card">
               <div className="sidebar-heading">
                 <div>
