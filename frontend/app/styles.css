@@ -584,6 +584,65 @@ main {
 }
 .read-link:hover { color: var(--text-primary); gap: 0.5rem; }
 
+/* ============================================================
+   COURSE CHAPTER LIST
+   ============================================================ */
+.chapter-list-wrap { width: 100%; }
+.chapter-list {
+  display: grid;
+  gap: .75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.chapter-list-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .9rem;
+  padding: 1rem;
+}
+.chapter-list-info {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .75rem;
+}
+.chapter-list-order {
+  display: inline-flex;
+  flex: 0 0 2rem;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-muted);
+  color: var(--text-muted);
+  font-size: .875rem;
+}
+.chapter-list-item h3 {
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.chapter-list-item h3 a { color: var(--text-primary); text-decoration: none; }
+.chapter-list-item h3 a:hover { color: var(--accent-light); }
+.chapter-list-item .btn-secondary { align-self: flex-start; }
+
+@media (min-width: 640px) {
+  .chapter-list-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem;
+  }
+  .chapter-list-item .btn-secondary { flex: 0 0 auto; }
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;
@@ -603,8 +662,24 @@ main {
 }
 
 .note-article {
+  min-width: 0;
   padding: 1.5rem;
 }
+
+.note-sidebar { min-width: 0; }
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem;
+  margin-bottom: 1.5rem;
+  font-size: .9rem;
+  overflow-wrap: anywhere;
+}
+.breadcrumb a { color: var(--text-muted); text-decoration: none; }
+.breadcrumb > span { color: var(--text-muted); }
+.breadcrumb > span:last-child { color: var(--text-primary); }
 
 @media (min-width: 640px) {
   .note-article { padding: 2rem; }
@@ -662,8 +737,10 @@ main {
   line-height: 1.85;
   color: var(--text-primary);
   max-width: 68ch;
+  overflow-wrap: anywhere;
 }
 .note-content p { color: var(--text-primary); margin-bottom: 1.25rem; }
+.note-content h2, .note-content h3, .note-content li { overflow-wrap: anywhere; }
 .note-content h2 {
   font-family: 'Inter', sans-serif;
   font-size: 1.35rem;
@@ -701,6 +778,7 @@ main {
 .note-content a:hover { text-decoration-color: var(--accent-light); }
 .note-content img {
   max-width: 100%;
+  height: auto;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   margin: 1.5rem 0;
@@ -714,6 +792,15 @@ main {
   font-size: 0.88em;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
+.note-content pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: .85rem 1rem;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.note-content pre code { padding: 0; border: 0; background: transparent; overflow-wrap: normal; }
 
 /* Sidebar */
 .note-sidebar {
@@ -843,6 +930,7 @@ main {
   transition: all var(--duration-fast);
 }
 .file-card:hover { border-color: var(--accent); background: var(--bg-hover); }
+.file-card > span:last-child, .attachment-card span { overflow-wrap: anywhere; }
 .file-icon {
   font-size: 0.65rem;
   font-weight: 800;
