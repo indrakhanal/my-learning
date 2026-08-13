@@ -5,6 +5,12 @@ import { RichTextEditor } from "./RichTextEditor";
 
 const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 type Resource = { label: string; url: string };
+type Attachment = {
+  id: string;
+  filename: string;
+  url: string;
+  kind: "IMAGE" | "FILE";
+};
 export type EditableNote = {
   id: string;
   title: string;
@@ -13,6 +19,7 @@ export type EditableNote = {
   updatedAt: string;
   tags: { tag: { name: string } }[];
   resources: Resource[];
+  attachments: Attachment[];
 };
 
 export function NoteEditor({
@@ -29,6 +36,7 @@ export function NoteEditor({
   const [tags, setTags] = useState("");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [resources, setResources] = useState<Resource[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [resource, setResource] = useState<Resource>({ label: "", url: "" });
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
@@ -42,6 +50,7 @@ export function NoteEditor({
     setTags(note?.tags.map(item => item.tag.name).join(", ") ?? "");
     setStatus(note?.status ?? "DRAFT");
     setResources(note?.resources ?? []);
+    setAttachments(note?.attachments ?? []);
     setFile(null);
     setPersistedId(note?.id ?? null);
     setMessage("");
@@ -72,7 +81,7 @@ export function NoteEditor({
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error ?? "Image upload failed");
-    return result.url as string;
+    return result as Attachment;
   }
 
   async function uploadInlineImage(image: File) {
@@ -92,10 +101,11 @@ export function NoteEditor({
         noteId = String(draft.id);
         setPersistedId(noteId);
       }
-      const url = await uploadFile(noteId as string, image);
+      const attachment = await uploadFile(noteId as string, image);
+      setAttachments(current => current.some(item => item.id === attachment.id) ? current : [...current, attachment]);
       setMessage("Image uploaded. Save to persist changes.");
       setMessageType("success");
-      return url;
+      return attachment.url;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Upload failed");
       setMessageType("error");
@@ -116,7 +126,11 @@ export function NoteEditor({
       const saved = await response.json();
       if (!response.ok) throw new Error(saved.error ?? "Could not save note");
       setPersistedId(saved.id);
-      if (file) await uploadFile(saved.id, file);
+      if (file) {
+        const attachment = await uploadFile(saved.id, file);
+        setAttachments(current => current.some(item => item.id === attachment.id) ? current : [...current, attachment]);
+        setFile(null);
+      }
       setMessage(noteId ? "Note updated." : "Note created.");
       setMessageType("success");
       onSaved();
@@ -125,6 +139,29 @@ export function NoteEditor({
       setMessageType("error");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function deleteAttachment(attachment: Attachment) {
+    const noteId = persistedId ?? note?.id;
+    if (!noteId || !window.confirm(`Delete ${attachment.filename}? This cannot be undone.`)) return;
+
+    setMessage("");
+    try {
+      const response = await fetch(`${api}/notes/${noteId}/attachments/${attachment.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error ?? "Could not delete attachment");
+      }
+      setAttachments(current => current.filter(item => item.id !== attachment.id));
+      setMessage("Attachment deleted.");
+      setMessageType("success");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not delete attachment");
+      setMessageType("error");
     }
   }
 
@@ -273,6 +310,24 @@ export function NoteEditor({
               <small style={{ color: "var(--green)" }}>
                 ✓ {file.name}
               </small>
+            )}
+            {attachments.length > 0 && (
+              <ul className="attachment-manager" aria-label="Uploaded attachments">
+                {attachments.map(attachment => (
+                  <li key={attachment.id}>
+                    <a href={attachment.url} target="_blank" rel="noreferrer">
+                      {attachment.filename}
+                    </a>
+                    <button
+                      type="button"
+                      className="btn-danger btn-small"
+                      onClick={() => deleteAttachment(attachment)}
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
         </aside>

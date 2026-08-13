@@ -1215,6 +1215,33 @@ main {
 }
 .resource-list button:hover { background: var(--red-soft) !important; }
 
+.attachment-manager {
+  list-style: none;
+  padding: 0;
+  margin: .85rem 0 0;
+  display: grid;
+  gap: .5rem;
+}
+
+.attachment-manager li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .6rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: .6rem;
+}
+
+.attachment-manager a {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--accent);
+  font-size: .875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ============================================================
    RICH TEXT EDITOR
    ============================================================ */
