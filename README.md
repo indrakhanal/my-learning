@@ -10,7 +10,7 @@ flowchart LR
   P[Public visitor] --> W
   W --> API[Express API]
   API --> DB[(Local PostgreSQL)]
-  API --> FS[Local uploads directory]
+  API --> FS[Cloudinary media storage]
 ```
 
 The public website sees only `PUBLISHED` notes. The administrator uses a signed JWT to create, edit, import, export, and upload attachments. PostgreSQL is the only data store; semantic embeddings and RAG are intentionally out of scope.
@@ -18,7 +18,7 @@ The public website sees only `PUBLISHED` notes. The administrator uses a signed 
 ## Repository layout
 
 - `frontend/` — Next.js public pages and protected Markdown editor with live preview.
-- `backend/` — Express API, Prisma schema, JWT authentication, local uploads, and API tests.
+- `backend/` — Express API, Prisma schema, JWT authentication, Cloudinary uploads, and API tests.
 - Cloudinary — persistent image and PDF storage for deployments; credentials remain backend-only.
 
 ## Free local setup (no Docker)
@@ -72,13 +72,17 @@ The interface is responsive and includes a web app manifest plus offline service
 | GET | `/api/notes/:id/export/markdown` | Download Markdown |
 | GET | `/api/notes/:id/export/pdf` | Download a basic PDF |
 | GET/POST | `/api/tags` | List / create tags |
-| POST | `/api/uploads/:noteId` | Store a supported attachment locally |
+| POST | `/api/uploads/:noteId` | Upload a supported attachment to Cloudinary |
 
 Protected calls require `Authorization: Bearer <token>`. Updates save a snapshot in `NoteVersion`, preserving a durable history in PostgreSQL.
 
 ## File uploads
 
 The API accepts PNG, JPEG, WebP, GIF, and PDF files up to 10 MB. It sends these files from the protected backend to Cloudinary and stores the returned HTTPS URL in PostgreSQL. Add `CLOUDINARY_URL` to `backend/.env` locally and to Render in production. Never expose this variable in frontend code or Vercel environment variables.
+
+### Enable PDF delivery on Cloudinary Free
+
+Cloudinary Free accounts accept PDF uploads but block their public delivery by default, which appears as an HTTP 401 when a reader opens the attachment. In the Cloudinary Console, open **Settings → Security**, find **PDF and ZIP files delivery**, enable **Allow delivery of PDF and ZIP files**, accept the confirmation, and save. This is an account-level security setting, so it applies to existing and future PDF attachments. If a previously blocked URL still returns 401 after enabling it, wait briefly for the CDN error cache to expire and retry in a private browser window.
 
 ## Quality and security checks
 

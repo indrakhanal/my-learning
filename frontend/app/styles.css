@@ -910,7 +910,16 @@ main {
 }
 .admin-nav-logout:hover { background: var(--red-soft) !important; }
 
+/* Keep every admin destination visible in the PWA, without requiring horizontal scrolling. */
+@media (max-width: 899px) {
+  .admin-sidebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; white-space: normal; }
+  .admin-nav-btn,.admin-nav-logout { width: 100%; text-align: center; padding-inline: .4rem !important; }
+  .admin-nav-logout { grid-column: span 2; }
+}
+
 .admin-content { min-width: 0; }
+
+.admin-course-cards,.admin-chapter-cards{display:grid;gap:.75rem}.admin-course-card,.admin-chapter-card{padding:1rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}.admin-course-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem}.admin-course-card h2,.admin-chapter-card h2{font-size:1.05rem;margin:0}.admin-course-card p{margin:.45rem 0 .8rem;font-size:.875rem}.admin-course-card-actions,.admin-chapter-card-actions{display:flex;flex-wrap:wrap;gap:.45rem}.btn-danger{background:#fff;color:var(--red);border-color:rgba(180,35,24,.35)}.btn-danger:hover{background:var(--red-soft)}.chapter-order{display:block;margin-bottom:.25rem;color:var(--text-muted);font-size:.78rem;font-weight:650}.admin-chapter-card-actions{margin-top:.8rem}.admin-course-table,.admin-chapter-table{display:none}
 
 @media (min-width: 900px) {
   .admin-layout {
@@ -950,6 +959,7 @@ main {
     justify-content: flex-start !important;
     text-align: left !important;
   }
+  .admin-course-cards,.admin-chapter-cards{display:none}.admin-course-table,.admin-chapter-table{display:block}
 }
 
 /* Admin content headings */
