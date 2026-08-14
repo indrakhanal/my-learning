@@ -32,7 +32,7 @@ export function ChapterList({ chapters, courseSlug }: { chapters: Chapter[], cou
             </div>
             
             <Link href={`/courses/${courseSlug}/chapters/${chapter.id}`} className="btn-secondary btn-small" aria-label={`Study ${chapter.title}`}>
-              Study →
+              <span className="chapter-study-label">Study</span> <span aria-hidden="true">&rarr;</span>
             </Link>
           </li>
         ))}

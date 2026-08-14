@@ -633,6 +633,11 @@ main {
 .chapter-list-item h3 a:hover { color: var(--accent-light); }
 .chapter-list-item .btn-secondary { align-self: flex-start; }
 
+@media (max-width: 639px) {
+  .chapter-list-item .btn-secondary { padding-inline: .65rem; }
+  .chapter-study-label { display: none; }
+}
+
 @media (min-width: 640px) {
   .chapter-list-item {
     flex-direction: row;
