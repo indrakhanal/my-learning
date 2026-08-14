@@ -634,8 +634,9 @@ main {
 .chapter-list-item .btn-secondary { align-self: flex-start; }
 
 @media (max-width: 639px) {
-  .chapter-list-item .btn-secondary { padding-inline: .65rem; }
-  .chapter-study-label { display: none; }
+  .chapter-list { gap: .5rem; }
+  .chapter-list-item { gap: .5rem; padding: .9rem 1rem; }
+  .chapter-list-item .btn-secondary { display: none; }
 }
 
 @media (min-width: 640px) {
