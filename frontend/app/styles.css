@@ -709,12 +709,27 @@ main {
 .course-outline-link.subchapter { font-size: .82rem; }
 
 @media (min-width: 900px) {
-  .course-reader-layout { grid-template-columns: 220px minmax(0, 1fr); gap: 1.5rem; align-items: start; }
-  .course-reader-layout.has-sidebar { grid-template-columns: 220px minmax(0, 1fr) 280px; }
+  .course-reader-layout { grid-template-columns: 200px minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+  .course-reader-layout.has-sidebar { grid-template-columns: 200px minmax(0, 1fr) 250px; }
   .course-outline { position: sticky; top: calc(var(--header-h) + 1rem); }
   .course-outline-toggle, .course-outline-close { display: none; }
   .course-outline-nav, .course-outline-nav.is-open { display: block; position: static; width: auto; max-height: calc(100vh - var(--header-h) - 2rem); overflow-y: auto; padding: .9rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
   .course-outline-heading { margin-bottom: .65rem; }
+}
+
+@media (min-width: 1200px) {
+  /* Let the learning reader use the screen instead of the site's narrower listing width. */
+  .course-reader-layout {
+    width: min(calc(100vw - 4rem), 1600px);
+    max-width: none;
+    margin-left: 50%;
+    margin-right: 0;
+    transform: translateX(-50%);
+    gap: 2rem;
+  }
+  .course-reader-layout.has-sidebar { grid-template-columns: 200px minmax(0, 1fr) 250px; }
+  .course-reader-layout .note-article { padding: 2.25rem 2.5rem; }
+  .course-reader-layout .note-content { max-width: none; }
 }
 
 .note-article {
