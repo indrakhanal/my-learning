@@ -32,6 +32,14 @@ export function CourseOutline({
       >
         Contents
       </button>
+      {isOpen && (
+        <button
+          type="button"
+          className="course-outline-backdrop"
+          aria-label="Close course contents"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
       <nav id="course-outline-navigation" className={`course-outline-nav${isOpen ? " is-open" : ""}`}>
         <div className="course-outline-heading">
           <span>Course contents</span>
