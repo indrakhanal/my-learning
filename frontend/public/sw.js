@@ -1,5 +1,18 @@
-const CACHE = "learning-notes-v4";
+const CACHE = "learning-notes-v5";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
+
+async function cacheResponse(request, response) {
+  if (!response.ok || response.bodyUsed || response.type === "opaque") return response;
+
+  try {
+    const cache = await caches.open(CACHE);
+    await cache.put(request, response.clone());
+  } catch (error) {
+    // A cache failure must never prevent a fresh page or asset from loading.
+    console.warn("Could not cache response", error);
+  }
+  return response;
+}
 
 self.addEventListener("install", event => event.waitUntil(
   caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting())
@@ -16,16 +29,20 @@ self.addEventListener("fetch", event => {
 
   // Content and Next.js server-rendered routes must refresh from the API-backed network response.
   if (event.request.mode === "navigate") {
-    event.respondWith(fetch(event.request).then(response => {
-      if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, response.clone()));
-      return response;
-    }).catch(() => caches.match(event.request).then(cached => cached || caches.match("/"))));
+    event.respondWith((async () => {
+      try {
+        return await cacheResponse(event.request, await fetch(event.request));
+      } catch {
+        return (await caches.match(event.request)) || (await caches.match("/")) || new Response("Offline", { status: 503 });
+      }
+    })());
     return;
   }
 
   // Versioned static assets remain available offline. Dynamic API requests are cross-origin and are never cached here.
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
-    if (response.ok) caches.open(CACHE).then(cache => cache.put(event.request, response.clone()));
-    return response;
-  })));
+  event.respondWith((async () => {
+    const cached = await caches.match(event.request);
+    if (cached) return cached;
+    return cacheResponse(event.request, await fetch(event.request));
+  })());
 });
