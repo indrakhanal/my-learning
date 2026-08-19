@@ -1,4 +1,4 @@
-const CACHE = "learning-notes-v3";
+const CACHE = "learning-notes-v4";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", event => event.waitUntil(

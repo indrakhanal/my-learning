@@ -3,11 +3,14 @@
 import sanitizeHtml from "sanitize-html";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { CourseOutline, type OutlineChapter } from "./CourseOutline";
 
 type Chapter = {
+  id: string;
   title: string;
   content: string;
   order: number;
+  parentId: string | null;
   course: { title: string, slug: string };
   attachments: { id: string; url: string; filename: string; kind: "IMAGE" | "FILE" }[];
   resources: { id: string; label: string; url: string }[];
@@ -34,7 +37,7 @@ function ReadingProgress() {
   );
 }
 
-export function ChapterView({ chapter }: { chapter: Chapter }) {
+export function ChapterView({ chapter, outline }: { chapter: Chapter; outline: OutlineChapter[] }) {
   const cleanContent = sanitizeHtml(chapter.content, {
     allowedTags: ["p", "br", "strong", "em", "s", "h2", "h3", "ul", "ol", "li", "blockquote", "a", "img", "code", "pre"],
     allowedAttributes: {
@@ -49,7 +52,8 @@ export function ChapterView({ chapter }: { chapter: Chapter }) {
   return (
     <>
       <ReadingProgress />
-      <div className={hasSidebar ? "note-detail-layout" : "note-detail-layout no-sidebar"}>
+      <div className={`course-reader-layout${hasSidebar ? " has-sidebar" : ""}`}>
+        <CourseOutline chapters={outline} courseSlug={chapter.course.slug} currentChapterId={chapter.id} />
         {/* ── Main Article ── */}
         <article className="glass-card note-article">
           <nav className="breadcrumb" aria-label="Breadcrumb">
@@ -57,14 +61,14 @@ export function ChapterView({ chapter }: { chapter: Chapter }) {
             <span aria-hidden="true">/</span>
             <Link href={`/courses/${chapter.course.slug}`}>{chapter.course.title}</Link>
             <span aria-hidden="true">/</span>
-            <span>Chapter {chapter.order}</span>
+            <span>{chapter.parentId ? "Subchapter" : "Chapter"} {chapter.order}</span>
           </nav>
           
           <p className="note-eyebrow">
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" style={{ marginRight: "4px" }}>
               <circle cx="4" cy="4" r="4" />
             </svg>
-            Chapter {chapter.order}
+            {chapter.parentId ? "Subchapter" : "Chapter"} {chapter.order}
           </p>
           <h1>{chapter.title}</h1>
 

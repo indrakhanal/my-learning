@@ -15,6 +15,8 @@ flowchart LR
 
 The public website sees only `PUBLISHED` notes. The administrator uses a signed JWT to create, edit, import, export, and upload attachments. PostgreSQL is the only data store; semantic embeddings and RAG are intentionally out of scope.
 
+Courses use a focused hierarchy: **Course → Chapter → Subchapter**. The chapter reader keeps a course outline on desktop and offers a collapsible contents panel on mobile, so readers can move between sections without returning to the course overview.
+
 ## Repository layout
 
 - `frontend/` — Next.js public pages and protected Markdown editor with live preview.

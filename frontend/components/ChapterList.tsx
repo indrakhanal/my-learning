@@ -4,6 +4,7 @@ type Chapter = {
   id: string;
   title: string;
   order: number;
+  subchapters: { id: string; title: string; order: number }[];
 };
 
 export function ChapterList({ chapters, courseSlug }: { chapters: Chapter[], courseSlug: string }) {
@@ -30,6 +31,17 @@ export function ChapterList({ chapters, courseSlug }: { chapters: Chapter[], cou
                 </Link>
               </h3>
             </div>
+            {chapter.subchapters.length > 0 && (
+              <ul className="chapter-subchapter-list" aria-label={`Subchapters in ${chapter.title}`}>
+                {chapter.subchapters.map((subchapter, index) => (
+                  <li key={subchapter.id}>
+                    <Link href={`/courses/${courseSlug}/chapters/${subchapter.id}`}>
+                      {chapter.order}.{index + 1} {subchapter.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
             
             <Link href={`/courses/${courseSlug}/chapters/${chapter.id}`} className="btn-secondary btn-small" aria-label={`Study ${chapter.title}`}>
               <span className="chapter-study-label">Study</span> <span aria-hidden="true">&rarr;</span>

@@ -126,6 +126,9 @@ model Chapter {
   id          String              @id @default(cuid())
   courseId    String
   course      Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Chapter?            @relation("ChapterHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  subchapters Chapter[]           @relation("ChapterHierarchy")
   title       String
   content     String              @db.Text
   order       Int
@@ -136,6 +139,7 @@ model Chapter {
 
   @@unique([courseId, order])
   @@index([courseId, order])
+  @@index([courseId, parentId, order])
 }
 
 model ChapterResource {
