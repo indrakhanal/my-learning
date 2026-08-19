@@ -23,6 +23,7 @@ const chapterInput = z.object({
   title: z.string().trim().min(1).max(180),
   content: z.string().max(200000).default("<p></p>"),
   resources: z.array(chapterResourceInput).default([]),
+  parentId: z.string().cuid().nullable().optional(),
 });
 
 const orderInput = z.object({ direction: z.enum(["up", "down"]) });
@@ -46,10 +47,37 @@ const chapterInclude = {
   attachments: true,
 } as const;
 
+const courseOutlineInclude = {
+  chapters: {
+    where: { parentId: null },
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      title: true,
+      order: true,
+      subchapters: {
+        orderBy: { order: "asc" },
+        select: { id: true, title: true, order: true, parentId: true },
+      },
+    },
+  },
+} as const;
+
 const courseInclude = {
   _count: { select: { chapters: true } },
   author: { select: { name: true, email: true } },
 } as const;
+
+async function validateParentChapter(courseId: string, parentId: string | null | undefined) {
+  if (!parentId) return null;
+  const parent = await prisma.chapter.findUnique({
+    where: { id: parentId },
+    select: { id: true, courseId: true, parentId: true },
+  });
+  if (!parent || parent.courseId !== courseId) return "Parent chapter not found in this course";
+  if (parent.parentId) return "Subchapters cannot contain another level of subchapters";
+  return null;
+}
 
 // ── Router ───────────────────────────────────────────────────────────────────
 
@@ -96,10 +124,7 @@ coursesRouter.get("/:slug", optionalAdmin, async (req: AuthRequest, res, next) =
     const course = await prisma.course.findUnique({
       where: { slug: String(req.params.slug) },
       include: {
-        chapters: {
-          orderBy: { order: "asc" },
-          include: chapterInclude,
-        },
+        ...courseOutlineInclude,
         author: { select: { name: true, email: true } },
       },
     });
@@ -167,18 +192,22 @@ coursesRouter.get("/:courseId/chapters", optionalAdmin, async (req: AuthRequest,
 coursesRouter.post("/:courseId/chapters", requireAdmin, async (req: AuthRequest, res, next) => {
   try {
     const data = chapterInput.parse(req.body);
-    const course = await prisma.course.findUnique({ where: { id: String(req.params.courseId) } });
+    const courseId = String(req.params.courseId);
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (!course) return res.status(404).json({ error: "Course not found" });
+    const parentError = await validateParentChapter(courseId, data.parentId);
+    if (parentError) return res.status(400).json({ error: parentError });
     // Order = max existing order + 1
     const last = await prisma.chapter.findFirst({
-      where: { courseId: String(req.params.courseId) },
+      where: { courseId },
       orderBy: { order: "desc" },
       select: { order: true },
     });
     const order = (last?.order ?? 0) + 1;
     const chapter = await prisma.chapter.create({
       data: {
-        courseId: String(req.params.courseId),
+        courseId,
+        parentId: data.parentId ?? null,
         title: data.title,
         content: data.content,
         order,
@@ -216,6 +245,9 @@ coursesRouter.put("/:courseId/chapters/:id", requireAdmin, async (req, res, next
     if (!existing || existing.courseId !== String(req.params.courseId)) {
       return res.status(404).json({ error: "Chapter not found" });
     }
+    if (data.parentId !== undefined && data.parentId !== existing.parentId) {
+      return res.status(400).json({ error: "A chapter's parent cannot be changed after creation" });
+    }
     const chapter = await prisma.chapter.update({
       where: { id: String(req.params.id) },
       data: {
@@ -236,6 +268,8 @@ coursesRouter.delete("/:courseId/chapters/:id", requireAdmin, async (req, res, n
     if (!existing || existing.courseId !== String(req.params.courseId)) {
       return res.status(404).json({ error: "Chapter not found" });
     }
+    const child = await prisma.chapter.findFirst({ where: { parentId: existing.id }, select: { id: true } });
+    if (child) return res.status(409).json({ error: "Delete or move this chapter's subchapters first" });
     await prisma.chapter.delete({ where: { id: String(req.params.id) } });
     // Re-sequence remaining chapters to remove gaps in order
     const remaining = await prisma.chapter.findMany({
@@ -260,10 +294,14 @@ coursesRouter.put("/:courseId/chapters/:id/order", requireAdmin, async (req, res
     if (!chapter || chapter.courseId !== String(req.params.courseId)) {
       return res.status(404).json({ error: "Chapter not found" });
     }
-    const adjacentOrder = direction === "up" ? chapter.order - 1 : chapter.order + 1;
-    const sibling = await prisma.chapter.findUnique({
-      where: { courseId_order: { courseId: String(req.params.courseId), order: adjacentOrder } },
+    const siblings = await prisma.chapter.findMany({
+      where: { courseId: String(req.params.courseId), parentId: chapter.parentId },
+      orderBy: { order: "asc" },
+      select: { id: true, order: true },
     });
+    const currentIndex = siblings.findIndex(sibling => sibling.id === chapter.id);
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    const sibling = siblings[targetIndex];
     if (!sibling) return res.status(400).json({ error: "Cannot move in that direction" });
 
     // Swap orders atomically using a temp value to avoid unique constraint collision
@@ -271,9 +309,9 @@ coursesRouter.put("/:courseId/chapters/:id/order", requireAdmin, async (req, res
     await prisma.$transaction([
       prisma.chapter.update({ where: { id: chapter.id }, data: { order: TEMP } }),
       prisma.chapter.update({ where: { id: sibling.id }, data: { order: chapter.order } }),
-      prisma.chapter.update({ where: { id: chapter.id }, data: { order: adjacentOrder } }),
+      prisma.chapter.update({ where: { id: chapter.id }, data: { order: sibling.order } }),
     ]);
 
-    res.json({ moved: chapter.id, order: adjacentOrder });
+    res.json({ moved: chapter.id, order: sibling.order });
   } catch (error) { next(error); }
 });

@@ -14,8 +14,10 @@ export default async function ChapterPage({ params }: { params: { slug: string, 
       if (courseRes.ok) {
         course = await courseRes.json();
         
-        // Find the chapter in the course chapters list to ensure it belongs to this course
-        const chapterExists = course.chapters.find((c: any) => c.id === params.id);
+        // Verify that the requested item is a top-level chapter or a subchapter in this course.
+        const chapterExists = course.chapters.some((c: any) =>
+          c.id === params.id || c.subchapters.some((subchapter: any) => subchapter.id === params.id)
+        );
         
         if (chapterExists) {
           const chapterRes = await fetch(`${api}/courses/${course.id}/chapters/${params.id}`, { cache: "no-store" });
@@ -39,5 +41,5 @@ export default async function ChapterPage({ params }: { params: { slug: string, 
     );
   }
 
-  return <ChapterView chapter={chapter} />;
+  return <ChapterView chapter={chapter} outline={course.chapters} />;
 }

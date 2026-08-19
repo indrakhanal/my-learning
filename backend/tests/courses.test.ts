@@ -57,4 +57,40 @@ describe("Courses API", () => {
     expect(response.body.title).toBe("Intro");
     expect(response.body.order).toBe(2);
   });
+
+  it("rejects a subchapter whose parent is not in the course", async () => {
+    (prisma.course.findUnique as any).mockResolvedValueOnce({ id: "course_1", title: "DSA", status: "DRAFT" });
+    (prisma.chapter.findUnique as any).mockResolvedValueOnce(null);
+
+    const response = await request(app)
+      .post("/api/courses/course_1/chapters")
+      .send({ title: "Arrays", content: "<p>Hi</p>", parentId: "ck1234567890" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toContain("Parent chapter");
+  });
+
+  it("creates a subchapter under a top-level chapter", async () => {
+    (prisma.course.findUnique as any).mockResolvedValueOnce({ id: "course_1", title: "DSA", status: "DRAFT" });
+    (prisma.chapter.findUnique as any).mockResolvedValueOnce({ id: "ck1234567890", courseId: "course_1", parentId: null });
+    (prisma.chapter.create as any).mockClear();
+
+    const response = await request(app)
+      .post("/api/courses/course_1/chapters")
+      .send({ title: "Arrays", content: "<p>Hi</p>", parentId: "ck1234567890" });
+
+    expect(response.status).toBe(201);
+    expect(prisma.chapter.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ parentId: "ck1234567890" }),
+    }));
+  });
+
+  it("prevents deleting a chapter that still has subchapters", async () => {
+    (prisma.chapter.findUnique as any).mockResolvedValueOnce({ id: "chapter_1", courseId: "course_1", parentId: null });
+    (prisma.chapter.findFirst as any).mockResolvedValueOnce({ id: "subchapter_1" });
+
+    const response = await request(app).delete("/api/courses/course_1/chapters/chapter_1");
+
+    expect(response.status).toBe(409);
+  });
 });

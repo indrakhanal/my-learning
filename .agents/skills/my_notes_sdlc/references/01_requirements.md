@@ -13,6 +13,8 @@ and what is explicitly out of scope. Before implementing any feature, validate i
 - [ ] View a single note by its unique slug
 - [ ] Filter notes by tag (via `?tag=<name>` query param)
 - [ ] Read the "About" page
+- [ ] Navigate published courses as a one-level hierarchy: chapters and subchapters
+- [ ] Use the course outline while reading to move directly between chapters and subchapters
 - [ ] Install the app as a PWA (on HTTPS deployments)
 
 ### Admin (JWT-authenticated)
@@ -27,6 +29,7 @@ and what is explicitly out of scope. Before implementing any feature, validate i
 - [ ] Manage resource links attached to a note (label + URL pairs)
 - [ ] List/search notes in the admin dashboard
 - [ ] Use the Tiptap rich-text editor with Bold, Italic, Strikethrough, H2, H3, Bullet list, Ordered list, Blockquote, Link, Image (URL or upload), and Clear formatting
+- [ ] Create and manage one-level subchapters, including sibling-only ordering and safe deletion
 
 ---
 

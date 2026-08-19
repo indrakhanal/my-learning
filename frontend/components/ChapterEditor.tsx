@@ -8,6 +8,7 @@ type Resource = { label: string; url: string };
 export type EditableChapter = {
   id: string;
   courseId: string;
+  parentId: string | null;
   title: string;
   content: string;
   order: number;
@@ -18,11 +19,13 @@ export function ChapterEditor({
   token,
   courseId,
   chapter,
+  parentChapter,
   onSaved,
 }: {
   token: string;
   courseId: string;
   chapter?: EditableChapter;
+  parentChapter?: { id: string; title: string };
   onSaved: () => void;
 }) {
   const [title, setTitle] = useState("");
@@ -49,6 +52,7 @@ export function ChapterEditor({
     title,
     content,
     resources,
+    parentId: chapter?.parentId ?? parentChapter?.id ?? null,
   });
 
   function addResource() {
@@ -132,7 +136,7 @@ export function ChapterEditor({
         <div>
           <p className="eyebrow">✏️ Chapter Editor</p>
           <h1>{chapter || persistedId ? "Edit chapter" : "Create a chapter"}</h1>
-          <p>Add rich content to this section of the course.</p>
+          <p>{parentChapter ? `Add a subchapter to ${parentChapter.title}.` : "Add rich content to this section of the course."}</p>
         </div>
         {chapter && (
           <span className="status-pill published">Order: {chapter.order}</span>
