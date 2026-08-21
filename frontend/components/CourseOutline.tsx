@@ -20,9 +20,13 @@ export function CourseOutline({
   currentChapterId: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const currentChapter = chapters.find(chapter =>
+    chapter.id === currentChapterId || chapter.subchapters.some(subchapter => subchapter.id === currentChapterId)
+  );
+  const visibleChapters = currentChapter ? [currentChapter] : chapters;
 
   return (
-    <aside className="course-outline" aria-label="Course contents">
+    <aside className="course-outline" aria-label="Chapter contents">
       <button
         type="button"
         className="course-outline-toggle btn-secondary"
@@ -42,11 +46,12 @@ export function CourseOutline({
       )}
       <nav id="course-outline-navigation" className={`course-outline-nav${isOpen ? " is-open" : ""}`}>
         <div className="course-outline-heading">
-          <span>Course contents</span>
+          <span>Chapter contents</span>
           <button type="button" className="course-outline-close" onClick={() => setIsOpen(false)} aria-label="Close course contents">Close</button>
         </div>
         <ol className="course-outline-list">
-          {chapters.map((chapter, index) => {
+          {visibleChapters.map((chapter) => {
+            const chapterIndex = chapters.findIndex(item => item.id === chapter.id);
             const chapterActive = chapter.id === currentChapterId;
             const subchapterActive = chapter.subchapters.some(item => item.id === currentChapterId);
             return (
@@ -57,7 +62,7 @@ export function CourseOutline({
                   aria-current={chapterActive ? "page" : undefined}
                   onClick={() => setIsOpen(false)}
                 >
-                  <span>{index + 1}</span>{chapter.title}
+                  <span>{chapterIndex + 1}</span>{chapter.title}
                 </Link>
                 {chapter.subchapters.length > 0 && (
                   <ol className={`course-outline-sublist${subchapterActive ? " has-active-child" : ""}`}>
@@ -71,7 +76,7 @@ export function CourseOutline({
                             aria-current={active ? "page" : undefined}
                             onClick={() => setIsOpen(false)}
                           >
-                            <span>{index + 1}.{subIndex + 1}</span>{subchapter.title}
+                            <span>{chapterIndex + 1}.{subIndex + 1}</span>{subchapter.title}
                           </Link>
                         </li>
                       );
