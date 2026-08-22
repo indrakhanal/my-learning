@@ -167,6 +167,12 @@ export function RichTextEditor({
           active={editor.isActive("blockquote")}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
         />
+        <ToolButton
+          label="&lt;/&gt; Code"
+          title="Code block"
+          active={editor.isActive("codeBlock")}
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        />
 
         {/* Link */}
         <ToolButton
