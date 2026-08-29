@@ -1087,7 +1087,7 @@ main {
 
 .admin-content { min-width: 0; }
 
-.admin-course-cards,.admin-chapter-cards{display:grid;gap:.75rem}.admin-course-card,.admin-chapter-card{padding:1rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}.admin-course-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem}.admin-course-card h2,.admin-chapter-card h2{font-size:1.05rem;margin:0}.admin-course-card p{margin:.45rem 0 .8rem;font-size:.875rem}.admin-course-card-actions,.admin-chapter-card-actions{display:flex;flex-wrap:wrap;gap:.45rem}.btn-danger{background:#fff;color:var(--red);border-color:rgba(180,35,24,.35)}.btn-danger:hover{background:var(--red-soft)}.chapter-order{display:block;margin-bottom:.25rem;color:var(--text-muted);font-size:.78rem;font-weight:650}.admin-chapter-card-actions{margin-top:.8rem}.admin-course-table,.admin-chapter-table{display:none}
+.admin-course-cards,.admin-chapter-cards{display:grid;gap:.65rem}.admin-course-card,.admin-chapter-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}.admin-course-card{padding:1rem}.admin-course-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem}.admin-course-card h2,.admin-chapter-card h2{font-size:1.05rem;margin:0}.admin-course-card p{margin:.45rem 0 .8rem;font-size:.875rem}.admin-course-card-actions,.admin-chapter-card-actions{display:flex;flex-wrap:wrap;gap:.4rem}.btn-danger{background:#fff;color:var(--red);border-color:rgba(180,35,24,.35)}.btn-danger:hover{background:var(--red-soft)}.chapter-order{display:block;margin-bottom:.2rem;color:var(--text-muted);font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}.admin-course-table,.admin-chapter-table{display:none}
 
 @media (min-width: 900px) {
   .admin-layout {
@@ -1410,6 +1410,14 @@ main {
   white-space: nowrap;
 }
 
+.admin-chapter-card-header { display:flex; align-items:center; gap:1rem; padding:1rem 1.1rem; }
+.admin-chapter-toggle { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items:center; flex:1; min-width:0; gap:.75rem; min-height:0; padding:0; border:0; border-radius:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
+.chapter-number-badge { display:grid; width:2.35rem; height:2.35rem; place-items:center; border:1px solid var(--accent); border-radius:.7rem; color:var(--accent-light); background:var(--accent-soft); font-size:1rem; font-weight:800; }
+.admin-chapter-toggle-copy { display:grid; min-width:0; gap:.1rem; }
+.admin-chapter-toggle-title { overflow:hidden; font-size:1rem; font-weight:750; text-overflow:ellipsis; white-space:nowrap; }
+.admin-chapter-toggle-meta { color:var(--text-muted); font-size:.78rem; }
+.admin-chapter-toggle-chevron { color:var(--accent-light); font-size:1.2rem; font-weight:800; }
+.admin-chapter-card-actions { margin:0; justify-content:flex-end; }
 .admin-subchapter-list {
   display: grid;
   gap: .65rem;
@@ -1421,21 +1429,13 @@ main {
 .admin-subchapter-row { display: grid; gap: .35rem; }
 .admin-subchapter-row > span { color: var(--text-muted); font-size: .75rem; font-weight: 700; text-transform: uppercase; }
 .admin-subchapter-row strong { overflow-wrap: anywhere; }
-.admin-chapter-card-heading { min-width: 0; }
-.admin-chapter-toggle {
-  display: grid;
-  width: 100%;
-  gap: .2rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.admin-chapter-toggle-title { overflow-wrap: anywhere; font-size: 1.05rem; font-weight: 700; }
-.admin-chapter-toggle-meta { color: var(--text-muted); font-size: .78rem; }
 .admin-subchapter-empty { margin: 0; color: var(--text-muted); font-size: .875rem; }
+
+@media (max-width: 640px) {
+  .admin-chapter-card-header { display:block; padding: .9rem; }
+  .admin-chapter-card-actions { justify-content:flex-start; margin-top:.8rem; }
+  .action-label { display:none; }
+}
 
 /* ============================================================
    RICH TEXT EDITOR
