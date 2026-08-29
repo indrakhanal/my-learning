@@ -1127,7 +1127,7 @@ main {
     justify-content: flex-start !important;
     text-align: left !important;
   }
-  .admin-course-cards,.admin-chapter-cards{display:none}.admin-course-table,.admin-chapter-table{display:block}
+  .admin-course-cards{display:none}.admin-course-table{display:block}
 }
 
 /* Admin content headings */
@@ -1421,6 +1421,21 @@ main {
 .admin-subchapter-row { display: grid; gap: .35rem; }
 .admin-subchapter-row > span { color: var(--text-muted); font-size: .75rem; font-weight: 700; text-transform: uppercase; }
 .admin-subchapter-row strong { overflow-wrap: anywhere; }
+.admin-chapter-card-heading { min-width: 0; }
+.admin-chapter-toggle {
+  display: grid;
+  width: 100%;
+  gap: .2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.admin-chapter-toggle-title { overflow-wrap: anywhere; font-size: 1.05rem; font-weight: 700; }
+.admin-chapter-toggle-meta { color: var(--text-muted); font-size: .78rem; }
+.admin-subchapter-empty { margin: 0; color: var(--text-muted); font-size: .875rem; }
 
 /* ============================================================
    RICH TEXT EDITOR
