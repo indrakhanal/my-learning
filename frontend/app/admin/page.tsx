@@ -322,7 +322,7 @@ export default function Admin() {
                 const isExpanded = expandedChapterIds.has(chapter.id);
                 return (
                 <article className="admin-chapter-card" key={chapter.id}>
-                  <div className="admin-chapter-card-heading">
+                  <div className="admin-chapter-card-header">
                     <button
                       type="button"
                       className="admin-chapter-toggle"
@@ -330,19 +330,23 @@ export default function Admin() {
                       aria-controls={`subchapters-${chapter.id}`}
                       onClick={() => toggleChapter(chapter.id)}
                     >
-                      <span className="chapter-order">Chapter {index + 1}</span>
-                      <span className="admin-chapter-toggle-title">{chapter.title}</span>
-                      <span className="admin-chapter-toggle-meta">
-                        {children.length} {children.length === 1 ? "subchapter" : "subchapters"} {isExpanded ? "▴" : "▾"}
+                      <span className="chapter-number-badge" aria-hidden="true">{index + 1}</span>
+                      <span className="admin-chapter-toggle-copy">
+                        <span className="chapter-order">Chapter {index + 1}</span>
+                        <span className="admin-chapter-toggle-title">{chapter.title}</span>
+                        <span className="admin-chapter-toggle-meta">
+                          {children.length} {children.length === 1 ? "subchapter" : "subchapters"}
+                        </span>
                       </span>
+                      <span className="admin-chapter-toggle-chevron" aria-hidden="true">{isExpanded ? "⌃" : "⌄"}</span>
                     </button>
-                  </div>
-                  <div className="admin-chapter-card-actions">
-                    <button className="btn-secondary btn-small" disabled={index === 0} onClick={() => reorderChapter(selectedCourseId, chapter.id, "up")}>Move up</button>
-                    <button className="btn-secondary btn-small" disabled={index === rootChapters.length - 1} onClick={() => reorderChapter(selectedCourseId, chapter.id, "down")}>Move down</button>
-                    {isExpanded && <button className="btn-secondary btn-small" onClick={() => { setEditingChapterId(null); setSubchapterParentId(chapter.id); setView("chapter-editor"); }}>+ Add subchapter</button>}
-                    <button className="btn-secondary btn-small" onClick={() => { setEditingChapterId(chapter.id); setSubchapterParentId(null); setView("chapter-editor"); }}>Edit</button>
-                    <button className="btn-danger btn-small" onClick={() => { if (window.confirm("Delete chapter?")) deleteChapter(selectedCourseId, chapter.id); }}>Delete</button>
+                    <div className="admin-chapter-card-actions">
+                      <button className="btn-secondary btn-small" disabled={index === 0} onClick={() => reorderChapter(selectedCourseId, chapter.id, "up")}>↑ <span className="action-label">Move up</span></button>
+                      <button className="btn-secondary btn-small" disabled={index === rootChapters.length - 1} onClick={() => reorderChapter(selectedCourseId, chapter.id, "down")}>↓ <span className="action-label">Move down</span></button>
+                      {isExpanded && <button className="btn-secondary btn-small" onClick={() => { setEditingChapterId(null); setSubchapterParentId(chapter.id); setView("chapter-editor"); }}>+ Add subchapter</button>}
+                      <button className="btn-secondary btn-small" onClick={() => { setEditingChapterId(chapter.id); setSubchapterParentId(null); setView("chapter-editor"); }}>Edit</button>
+                      <button className="btn-danger btn-small" onClick={() => { if (window.confirm("Delete chapter?")) deleteChapter(selectedCourseId, chapter.id); }}>Delete</button>
+                    </div>
                   </div>
                   {isExpanded && (
                     <div id={`subchapters-${chapter.id}`} className="admin-subchapter-list">
