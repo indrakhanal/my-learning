@@ -31,8 +31,17 @@ export default function Admin() {
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
   const [subchapterParentId, setSubchapterParentId] = useState<string | null>(null);
   const [chapters, setChapters] = useState<EditableChapter[]>([]);
+  const [expandedChapterIds, setExpandedChapterIds] = useState<Set<string>>(new Set());
   const rootChapters = chapters.filter(chapter => !chapter.parentId);
-  const siblingsFor = (chapter: EditableChapter) => chapters.filter(item => item.parentId === chapter.parentId);
+
+  function toggleChapter(chapterId: string) {
+    setExpandedChapterIds(current => {
+      const next = new Set(current);
+      if (next.has(chapterId)) next.delete(chapterId);
+      else next.add(chapterId);
+      return next;
+    });
+  }
 
   const fetchNotes = useCallback(async () => {
     if (!token) return;
@@ -273,7 +282,7 @@ export default function Admin() {
             <AdminCourseList
               courses={courses}
               onEdit={(id) => { setEditingCourseId(id); setView("course-editor"); }}
-              onManageChapters={(id) => { setSelectedCourseId(id); fetchChapters(id); setView("chapters"); }}
+              onManageChapters={(id) => { setSelectedCourseId(id); setExpandedChapterIds(new Set()); fetchChapters(id); setView("chapters"); }}
               onDelete={deleteCourse}
             />
           </div>
@@ -310,21 +319,37 @@ export default function Admin() {
             <div className="admin-chapter-cards" aria-label="Chapters">
               {rootChapters.map((chapter, index) => {
                 const children = chapters.filter(item => item.parentId === chapter.id);
+                const isExpanded = expandedChapterIds.has(chapter.id);
                 return (
                 <article className="admin-chapter-card" key={chapter.id}>
-                  <div><span className="chapter-order">Chapter {chapter.order}</span><h2>{chapter.title}</h2></div>
+                  <div className="admin-chapter-card-heading">
+                    <button
+                      type="button"
+                      className="admin-chapter-toggle"
+                      aria-expanded={isExpanded}
+                      aria-controls={`subchapters-${chapter.id}`}
+                      onClick={() => toggleChapter(chapter.id)}
+                    >
+                      <span className="chapter-order">Chapter {index + 1}</span>
+                      <span className="admin-chapter-toggle-title">{chapter.title}</span>
+                      <span className="admin-chapter-toggle-meta">
+                        {children.length} {children.length === 1 ? "subchapter" : "subchapters"} {isExpanded ? "▴" : "▾"}
+                      </span>
+                    </button>
+                  </div>
                   <div className="admin-chapter-card-actions">
                     <button className="btn-secondary btn-small" disabled={index === 0} onClick={() => reorderChapter(selectedCourseId, chapter.id, "up")}>Move up</button>
                     <button className="btn-secondary btn-small" disabled={index === rootChapters.length - 1} onClick={() => reorderChapter(selectedCourseId, chapter.id, "down")}>Move down</button>
-                    <button className="btn-secondary btn-small" onClick={() => { setEditingChapterId(null); setSubchapterParentId(chapter.id); setView("chapter-editor"); }}>+ Subchapter</button>
+                    {isExpanded && <button className="btn-secondary btn-small" onClick={() => { setEditingChapterId(null); setSubchapterParentId(chapter.id); setView("chapter-editor"); }}>+ Add subchapter</button>}
                     <button className="btn-secondary btn-small" onClick={() => { setEditingChapterId(chapter.id); setSubchapterParentId(null); setView("chapter-editor"); }}>Edit</button>
                     <button className="btn-danger btn-small" onClick={() => { if (window.confirm("Delete chapter?")) deleteChapter(selectedCourseId, chapter.id); }}>Delete</button>
                   </div>
-                  {children.length > 0 && (
-                    <div className="admin-subchapter-list">
+                  {isExpanded && (
+                    <div id={`subchapters-${chapter.id}`} className="admin-subchapter-list">
+                      {children.length === 0 && <p className="admin-subchapter-empty">No subchapters yet. Add the first one here.</p>}
                       {children.map((subchapter, subIndex) => (
                         <div className="admin-subchapter-row" key={subchapter.id}>
-                          <span>Subchapter {subIndex + 1}</span>
+                          <span>Subchapter {index + 1}.{subIndex + 1}</span>
                           <strong>{subchapter.title}</strong>
                           <div className="admin-chapter-card-actions">
                             <button className="btn-secondary btn-small" disabled={subIndex === 0} onClick={() => reorderChapter(selectedCourseId, subchapter.id, "up")}>Move up</button>
@@ -340,45 +365,6 @@ export default function Admin() {
               )})}
               {chapters.length === 0 && <div className="empty-state"><p>No chapters yet. Select “New Chapter” to add the first one.</p></div>}
             </div>
-            
-            <div className="admin-table-wrap glass-card admin-chapter-table">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Order</th>
-                    <th>Title</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {chapters.map(chapter => {
-                    const siblings = siblingsFor(chapter);
-                    const index = siblings.findIndex(item => item.id === chapter.id);
-                    return (
-                    <tr key={chapter.id}>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          {chapter.order}
-                          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <button disabled={index === 0} onClick={() => reorderChapter(selectedCourseId, chapter.id, "up")} style={{ cursor: index === 0 ? "default" : "pointer", background: "none", border: "none", opacity: index === 0 ? 0.3 : 1 }}>▲</button>
-                            <button disabled={index === chapters.length - 1} onClick={() => reorderChapter(selectedCourseId, chapter.id, "down")} style={{ cursor: index === chapters.length - 1 ? "default" : "pointer", background: "none", border: "none", opacity: index === chapters.length - 1 ? 0.3 : 1 }}>▼</button>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="title-cell">{chapter.parentId ? `↳ ${chapter.title}` : chapter.title}</td>
-                      <td>
-                        <div className="action-buttons">
-                          <button className="btn-secondary btn-small" onClick={() => { setEditingChapterId(chapter.id); setSubchapterParentId(null); setView("chapter-editor"); }}>Edit</button>
-                          {!chapter.parentId && <button className="btn-secondary btn-small" onClick={() => { setEditingChapterId(null); setSubchapterParentId(chapter.id); setView("chapter-editor"); }}>+ Subchapter</button>}
-                          <button className="btn-secondary btn-small" onClick={() => { if (window.confirm("Delete chapter?")) deleteChapter(selectedCourseId, chapter.id); }} style={{ borderColor: "var(--red)", color: "var(--red)" }}>Delete</button>
-                        </div>
-                      </td>
-                    </tr>
-                  )})}
-                  {chapters.length === 0 && <tr><td colSpan={3} style={{ textAlign: "center", padding: "2rem" }}>No chapters yet.</td></tr>}
-                </tbody>
-              </table>
-            </div>
           </div>
         )}
 
@@ -392,6 +378,7 @@ export default function Admin() {
               setMessage("Chapter saved successfully.");
               fetchChapters(selectedCourseId);
               fetchCourses(); // update chapter count on course list
+              if (subchapterParentId) setExpandedChapterIds(current => new Set(current).add(subchapterParentId));
               setSubchapterParentId(null);
               setView("chapters");
             }}
