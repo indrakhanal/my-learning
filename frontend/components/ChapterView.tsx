@@ -38,6 +38,12 @@ function ReadingProgress() {
 }
 
 export function ChapterView({ chapter, outline }: { chapter: Chapter; outline: OutlineChapter[] }) {
+  const parentIndex = outline.findIndex(item => item.id === (chapter.parentId ?? chapter.id));
+  const chapterNumber = parentIndex >= 0 ? parentIndex + 1 : chapter.order;
+  const subchapterNumber = chapter.parentId
+    ? (outline[parentIndex]?.subchapters.findIndex(item => item.id === chapter.id) ?? -1) + 1
+    : null;
+  const displayNumber = subchapterNumber ? `${chapterNumber}.${subchapterNumber}` : chapterNumber;
   const cleanContent = sanitizeHtml(chapter.content, {
     allowedTags: ["p", "br", "strong", "em", "s", "h2", "h3", "ul", "ol", "li", "blockquote", "a", "img", "code", "pre"],
     allowedAttributes: {
@@ -61,14 +67,14 @@ export function ChapterView({ chapter, outline }: { chapter: Chapter; outline: O
             <span aria-hidden="true">/</span>
             <Link href={`/courses/${chapter.course.slug}`}>{chapter.course.title}</Link>
             <span aria-hidden="true">/</span>
-            <span>{chapter.parentId ? "Subchapter" : "Chapter"} {chapter.order}</span>
+            <span>{chapter.parentId ? "Subchapter" : "Chapter"} {displayNumber}</span>
           </nav>
           
           <p className="note-eyebrow">
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" style={{ marginRight: "4px" }}>
               <circle cx="4" cy="4" r="4" />
             </svg>
-            {chapter.parentId ? "Subchapter" : "Chapter"} {chapter.order}
+            {chapter.parentId ? "Subchapter" : "Chapter"} {displayNumber}
           </p>
           <h1>{chapter.title}</h1>
 
