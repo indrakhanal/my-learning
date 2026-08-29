@@ -56,6 +56,9 @@ describe("Courses API", () => {
     expect(response.status).toBe(201);
     expect(response.body.title).toBe("Intro");
     expect(response.body.order).toBe(2);
+    expect(prisma.chapter.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { courseId: "course_1", parentId: null },
+    }));
   });
 
   it("rejects a subchapter whose parent is not in the course", async () => {
@@ -82,6 +85,9 @@ describe("Courses API", () => {
     expect(response.status).toBe(201);
     expect(prisma.chapter.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ parentId: "ck1234567890" }),
+    }));
+    expect(prisma.chapter.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { courseId: "course_1", parentId: "ck1234567890" },
     }));
   });
 

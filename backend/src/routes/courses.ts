@@ -197,9 +197,9 @@ coursesRouter.post("/:courseId/chapters", requireAdmin, async (req: AuthRequest,
     if (!course) return res.status(404).json({ error: "Course not found" });
     const parentError = await validateParentChapter(courseId, data.parentId);
     if (parentError) return res.status(400).json({ error: parentError });
-    // Order = max existing order + 1
+    // Order is scoped to siblings so subchapters do not consume top-level numbers.
     const last = await prisma.chapter.findFirst({
-      where: { courseId },
+      where: { courseId, parentId: data.parentId ?? null },
       orderBy: { order: "desc" },
       select: { order: true },
     });
@@ -271,9 +271,9 @@ coursesRouter.delete("/:courseId/chapters/:id", requireAdmin, async (req, res, n
     const child = await prisma.chapter.findFirst({ where: { parentId: existing.id }, select: { id: true } });
     if (child) return res.status(409).json({ error: "Delete or move this chapter's subchapters first" });
     await prisma.chapter.delete({ where: { id: String(req.params.id) } });
-    // Re-sequence remaining chapters to remove gaps in order
+    // Re-sequence only the deleted chapter's siblings to remove gaps in order.
     const remaining = await prisma.chapter.findMany({
-      where: { courseId: String(req.params.courseId) },
+      where: { courseId: String(req.params.courseId), parentId: existing.parentId },
       orderBy: { order: "asc" },
       select: { id: true },
     });

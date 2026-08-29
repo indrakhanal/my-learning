@@ -19,11 +19,11 @@ export function ChapterList({ chapters, courseSlug }: { chapters: Chapter[], cou
   return (
     <div className="chapter-list-wrap">
       <ul className="chapter-list">
-        {chapters.map((chapter) => (
+        {chapters.map((chapter, chapterIndex) => (
           <li key={chapter.id} className="chapter-list-item glass-card">
             <div className="chapter-list-info">
               <span className="chapter-list-order">
-                {chapter.order}
+                {chapterIndex + 1}
               </span>
               <h3>
                 <Link href={`/courses/${courseSlug}/chapters/${chapter.id}`}>
@@ -36,7 +36,7 @@ export function ChapterList({ chapters, courseSlug }: { chapters: Chapter[], cou
                 {chapter.subchapters.map((subchapter, index) => (
                   <li key={subchapter.id}>
                     <Link href={`/courses/${courseSlug}/chapters/${subchapter.id}`}>
-                      {chapter.order}.{index + 1} {subchapter.title}
+                      {chapterIndex + 1}.{index + 1} {subchapter.title}
                     </Link>
                   </li>
                 ))}

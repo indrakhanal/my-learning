@@ -137,7 +137,7 @@ model Chapter {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
-  @@unique([courseId, order])
+  @@unique([courseId, parentId, order])
   @@index([courseId, order])
   @@index([courseId, parentId, order])
 }
