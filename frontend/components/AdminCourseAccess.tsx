@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-type AccessEmail = { id: string; email: string; duration: "MONTH" | "YEAR"; expiresAt: string; createdAt: string };
+type AccessEmail = { id: string; email: string; duration: "MONTH" | "YEAR"; expiresAt: string; createdAt: string; hasActiveSession: boolean; lastSeenAt: string | null };
 
 export function AdminCourseAccess({ token }: { token: string }) {
   const [emails, setEmails] = useState<AccessEmail[]>([]);
@@ -32,6 +32,12 @@ export function AdminCourseAccess({ token }: { token: string }) {
     setMessage("Access revoked."); load();
   }
 
+  async function resetSession(id: string) {
+    const response = await fetch(`${api}/course-access/emails/${id}/reset-session`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) { setError(true); setMessage("Could not disconnect the active device."); return; }
+    setMessage("Active device disconnected."); load();
+  }
+
   return <div>
     <div className="admin-page-header"><div><h1>Course access</h1><p>Only these email addresses can open published courses.</p></div></div>
     <form onSubmit={add} className="glass-card compose-card" style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
@@ -41,7 +47,7 @@ export function AdminCourseAccess({ token }: { token: string }) {
     </form>
     {message && <p className={`form-message${error ? " error" : ""}`} role="status">{message}</p>}
     <div className="admin-table-wrap glass-card" style={{ display: "block", marginTop: "1rem" }}><table className="admin-table"><thead><tr><th>Email</th><th>Added</th><th>Actions</th></tr></thead><tbody>
-      {emails.map(item => <tr key={item.id}><td className="title-cell">{item.email}</td><td>{item.duration === "MONTH" ? "1 month" : "1 year"} · Expires {new Date(item.expiresAt).toLocaleDateString()}</td><td><button className="btn-danger btn-small" onClick={() => { if (window.confirm(`Revoke access for ${item.email}?`)) remove(item.id); }}>Revoke</button></td></tr>)}
+      {emails.map(item => <tr key={item.id}><td className="title-cell">{item.email}</td><td>{item.duration === "MONTH" ? "1 month" : "1 year"} · Expires {new Date(item.expiresAt).toLocaleDateString()} · {item.hasActiveSession ? "Device active" : "No active device"}</td><td><button className="btn-secondary btn-small" disabled={!item.hasActiveSession} onClick={() => resetSession(item.id)}>Disconnect device</button> <button className="btn-danger btn-small" onClick={() => { if (window.confirm(`Revoke access for ${item.email}?`)) remove(item.id); }}>Revoke</button></td></tr>)}
       {!emails.length && <tr><td colSpan={3}>No course access emails yet.</td></tr>}
     </tbody></table></div>
   </div>;

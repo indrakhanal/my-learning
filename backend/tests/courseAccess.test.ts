@@ -10,6 +10,7 @@ vi.mock("../src/lib/prisma.js", () => ({
       findMany: vi.fn().mockResolvedValue([]),
       create: vi.fn().mockResolvedValue({ id: "access_1", email: "learner@example.com", duration: "MONTH", expiresAt: new Date(Date.now() + 2592000000), createdAt: new Date() }),
       delete: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -24,7 +25,7 @@ import { prisma } from "../src/lib/prisma.js";
 
 describe("Course access API", () => {
   it("issues a token only for a registered email", async () => {
-    const response = await request(app).post("/api/course-access/verify").send({ email: "LEARNER@example.com" });
+    const response = await request(app).post("/api/course-access/verify").set("X-Device-ID", "11111111-1111-4111-8111-111111111111").send({ email: "LEARNER@example.com" });
     expect(response.status).toBe(200);
     expect(response.body.token).toEqual(expect.any(String));
     expect(prisma.courseAccessEmail.findUnique).toHaveBeenCalledWith({ where: { email: "learner@example.com" } });
@@ -43,7 +44,7 @@ describe("Course access API", () => {
       expiresAt: new Date(Date.now() - 1000),
       createdAt: new Date(Date.now() - 31 * 86400000),
     });
-    const response = await request(app).post("/api/course-access/verify").send({ email: "expired@example.com" });
+    const response = await request(app).post("/api/course-access/verify").set("X-Device-ID", "11111111-1111-4111-8111-111111111111").send({ email: "expired@example.com" });
     expect(response.status).toBe(403);
     expect(response.body.error).toContain("expired");
   });

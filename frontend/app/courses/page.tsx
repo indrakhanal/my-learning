@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CourseList } from "../../components/CourseList";
-import { CourseAccessGate, useCourseAccessToken } from "../../components/CourseAccessGate";
+import { CourseAccessGate, courseAccessHeaders, useCourseAccessToken } from "../../components/CourseAccessGate";
 
 const api = process.env.NEXT_PUBLIC_API_URL;
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export default function CoursesPage() {
 function AuthorizedCourses() {
   const token = useCourseAccessToken();
   const [courses, setCourses] = useState<any[]>([]);
-  useEffect(() => { if (token) fetch(`${api}/courses`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }).then(r => r.ok ? r.json() : []).then(setCourses).catch(() => setCourses([])); }, [token]);
+  useEffect(() => { if (token) fetch(`${api}/courses`, { headers: courseAccessHeaders(token), cache: "no-store" }).then(r => r.ok ? r.json() : []).then(setCourses).catch(() => setCourses([])); }, [token]);
 
   return (
     <>

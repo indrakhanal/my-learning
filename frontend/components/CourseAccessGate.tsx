@@ -4,7 +4,18 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 const storageKey = "courseAccessToken";
+const deviceStorageKey = "courseAccessDeviceId";
 const CourseAccessContext = createContext<string | null>(null);
+
+function getDeviceId() {
+  let deviceId = window.localStorage.getItem(deviceStorageKey);
+  if (!deviceId) { deviceId = crypto.randomUUID(); window.localStorage.setItem(deviceStorageKey, deviceId); }
+  return deviceId;
+}
+
+export function courseAccessHeaders(token: string) {
+  return { Authorization: `Bearer ${token}`, "X-Device-ID": getDeviceId() };
+}
 
 function ProtectedCourseSurface({ children }: { children: React.ReactNode }) {
   const [hidden, setHidden] = useState(false);
@@ -44,7 +55,7 @@ export function CourseAccessGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const saved = window.localStorage.getItem(storageKey);
     if (!saved) { setChecking(false); return; }
-    fetch(`${api}/courses`, { headers: { Authorization: `Bearer ${saved}` }, cache: "no-store" })
+    fetch(`${api}/courses`, { headers: courseAccessHeaders(saved), cache: "no-store" })
       .then(response => {
         if (response.ok) setToken(saved);
         else window.localStorage.removeItem(storageKey);
@@ -58,7 +69,7 @@ export function CourseAccessGate({ children }: { children: React.ReactNode }) {
     setSubmitting(true); setMessage("");
     try {
       const response = await fetch(`${api}/course-access/verify`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }),
+        method: "POST", headers: { "Content-Type": "application/json", "X-Device-ID": getDeviceId() }, body: JSON.stringify({ email }),
       });
       const json = await response.json();
       if (!response.ok) { setMessage(json.error ?? "This email does not have course access."); return; }
