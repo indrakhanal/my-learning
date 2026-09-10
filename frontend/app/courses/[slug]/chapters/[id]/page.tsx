@@ -1,36 +1,47 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { ChapterView } from "../../../../../components/ChapterView";
+import { CourseAccessGate, useCourseAccessToken } from "../../../../../components/CourseAccessGate";
 
 const api = process.env.NEXT_PUBLIC_API_URL;
 export const dynamic = "force-dynamic";
 
-export default async function ChapterPage({ params }: { params: { slug: string, id: string } }) {
-  let course = null;
-  let chapter = null;
-  
-  if (api) {
-    try {
+export default function ChapterPage({ params }: { params: { slug: string, id: string } }) {
+  return <CourseAccessGate><AuthorizedChapter slug={params.slug} id={params.id} /></CourseAccessGate>;
+}
+
+function AuthorizedChapter({ slug, id }: { slug: string; id: string }) {
+  const token = useCourseAccessToken();
+  const [course, setCourse] = useState<any>(null);
+  const [chapter, setChapter] = useState<any>(null);
+  useEffect(() => {
+    if (!token || !api) return;
+    (async () => {
+      let loadedCourse: any = null;
+      let loadedChapter: any = null;
       // We need the course to verify it's published and get its title/slug for the breadcrumb
-      const courseRes = await fetch(`${api}/courses/${params.slug}`, { cache: "no-store" });
+      const headers = { Authorization: `Bearer ${token}` };
+      const courseRes = await fetch(`${api}/courses/${slug}`, { headers, cache: "no-store" });
       if (courseRes.ok) {
-        course = await courseRes.json();
+        loadedCourse = await courseRes.json();
         
         // Verify that the requested item is a top-level chapter or a subchapter in this course.
-        const chapterExists = course.chapters.some((c: any) =>
-          c.id === params.id || c.subchapters.some((subchapter: any) => subchapter.id === params.id)
+        const chapterExists = loadedCourse.chapters.some((c: any) =>
+          c.id === id || c.subchapters.some((subchapter: any) => subchapter.id === id)
         );
         
         if (chapterExists) {
-          const chapterRes = await fetch(`${api}/courses/${course.id}/chapters/${params.id}`, { cache: "no-store" });
+          const chapterRes = await fetch(`${api}/courses/${loadedCourse.id}/chapters/${id}`, { headers, cache: "no-store" });
           if (chapterRes.ok) {
-            chapter = await chapterRes.json();
-            chapter.course = { title: course.title, slug: course.slug }; // attach course info for breadcrumb
+            loadedChapter = await chapterRes.json();
+            loadedChapter.course = { title: loadedCourse.title, slug: loadedCourse.slug }; // attach course info for breadcrumb
           }
         }
       }
-    } catch (error) {
-      console.error("API is unavailable", error);
-    }
-  }
+      setCourse(loadedCourse); setChapter(loadedChapter);
+    })().catch(error => console.error("API is unavailable", error));
+  }, [token, slug, id]);
 
   if (!chapter) {
     return (

@@ -1705,6 +1705,18 @@ main {
 }
 .fade-in { animation: fadeInUp var(--duration-slow) var(--ease-out) both; }
 
+/* Course content is a controlled reading surface. Browser/OS screenshot capture
+   cannot be reliably blocked, but these measures discourage casual copying. */
+.course-protected-content {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.course-protected-hidden {
+  filter: blur(18px);
+  transition: filter 80ms linear;
+}
+
 /* ============================================================
    RESPONSIVE HELPERS
    ============================================================ */

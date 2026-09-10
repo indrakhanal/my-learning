@@ -25,6 +25,7 @@ vi.mock("../src/lib/prisma.js", () => ({
       create: vi.fn().mockResolvedValue({ id: "chapter_1", courseId: "course_1", title: "Intro", order: 2 }),
       update: vi.fn(),
     },
+    courseAccessEmail: { findUnique: vi.fn().mockResolvedValue({ id: "access_1", email: "learner@example.com" }) },
     $transaction: vi.fn().mockResolvedValue([]),
   }
 }));
@@ -32,7 +33,8 @@ vi.mock("../src/lib/prisma.js", () => ({
 // Mock auth middleware
 vi.mock("../src/middleware/auth.js", async () => ({
   requireAdmin: (req: any, _res: any, next: any) => { req.user = { id: "admin_1", role: "ADMIN" }; next(); },
-  optionalAdmin: (_req: any, _res: any, next: any) => next()
+  optionalAdmin: (_req: any, _res: any, next: any) => next(),
+  requireCourseAccess: (req: any, _res: any, next: any) => { req.user = { id: "access_1", role: "COURSE_VIEWER", kind: "COURSE_ACCESS" }; next(); }
 }));
 
 

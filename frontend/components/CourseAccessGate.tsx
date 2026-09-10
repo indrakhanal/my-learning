@@ -1,0 +1,85 @@
+"use client";
+
+import { createContext, useContext, useEffect, useState } from "react";
+
+const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+const storageKey = "courseAccessToken";
+const CourseAccessContext = createContext<string | null>(null);
+
+function ProtectedCourseSurface({ children }: { children: React.ReactNode }) {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    const preventCopy = (event: Event) => event.preventDefault();
+    const preventShortcuts = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && ["c", "x", "s", "p", "u"].includes(event.key.toLowerCase())) event.preventDefault();
+      if (event.key === "PrintScreen") event.preventDefault();
+    };
+    const onVisibilityChange = () => setHidden(document.visibilityState === "hidden");
+    document.addEventListener("copy", preventCopy);
+    document.addEventListener("cut", preventCopy);
+    document.addEventListener("contextmenu", preventCopy);
+    document.addEventListener("dragstart", preventCopy);
+    document.addEventListener("keydown", preventShortcuts);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("copy", preventCopy); document.removeEventListener("cut", preventCopy);
+      document.removeEventListener("contextmenu", preventCopy); document.removeEventListener("dragstart", preventCopy);
+      document.removeEventListener("keydown", preventShortcuts); document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+  return <div className={`course-protected-content${hidden ? " course-protected-hidden" : ""}`}>{children}</div>;
+}
+
+export function useCourseAccessToken() {
+  return useContext(CourseAccessContext);
+}
+
+export function CourseAccessGate({ children }: { children: React.ReactNode }) {
+  const [token, setToken] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(storageKey);
+    if (!saved) { setChecking(false); return; }
+    fetch(`${api}/courses`, { headers: { Authorization: `Bearer ${saved}` }, cache: "no-store" })
+      .then(response => {
+        if (response.ok) setToken(saved);
+        else window.localStorage.removeItem(storageKey);
+      })
+      .catch(() => window.localStorage.removeItem(storageKey))
+      .finally(() => setChecking(false));
+  }, []);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setSubmitting(true); setMessage("");
+    try {
+      const response = await fetch(`${api}/course-access/verify`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }),
+      });
+      const json = await response.json();
+      if (!response.ok) { setMessage(json.error ?? "This email does not have course access."); return; }
+      window.localStorage.setItem(storageKey, json.token);
+      setToken(json.token);
+    } catch { setMessage("Cannot reach the server. Please try again."); }
+    finally { setSubmitting(false); }
+  }
+
+  if (checking) return <div className="login-wrap" aria-busy="true"><p>Checking course access…</p></div>;
+  if (!token) return (
+    <div className="login-wrap">
+      <div className="glass-card login-card fade-in">
+        <div className="login-logo"><div className="login-logo-icon" aria-hidden="true">🔒</div><h1>Course access</h1><p>Enter your registered email to continue.</p></div>
+        <form onSubmit={submit} className="login-form">
+          <label htmlFor="course-access-email">Email address<input id="course-access-email" type="email" value={email} onChange={event => setEmail(event.target.value)} required autoComplete="email" /></label>
+          <button type="submit" className="btn-primary" disabled={submitting}>{submitting ? "Checking…" : "Continue →"}</button>
+        </form>
+        {message && <p className="login-error" role="alert">{message}</p>}
+      </div>
+    </div>
+  );
+  return <CourseAccessContext.Provider value={token}><ProtectedCourseSurface>{children}</ProtectedCourseSurface></CourseAccessContext.Provider>;
+}
