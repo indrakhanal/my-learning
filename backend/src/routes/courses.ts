@@ -3,7 +3,7 @@ import { CourseStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { slugify } from "../lib/slug.js";
-import { optionalAdmin, requireAdmin, type AuthRequest } from "../middleware/auth.js";
+import { requireCourseAccess, requireAdmin, type AuthRequest } from "../middleware/auth.js";
 
 // ── Zod schemas ──────────────────────────────────────────────────────────────
 
@@ -86,9 +86,9 @@ export const coursesRouter = Router();
 // ── Course CRUD ──────────────────────────────────────────────────────────────
 
 // GET /api/courses — public: PUBLISHED only | admin: all
-coursesRouter.get("/", optionalAdmin, async (req: AuthRequest, res, next) => {
+coursesRouter.get("/", requireCourseAccess, async (req: AuthRequest, res, next) => {
   try {
-    const where = req.user ? {} : { status: CourseStatus.PUBLISHED };
+    const where = req.user?.role === "ADMIN" ? {} : { status: CourseStatus.PUBLISHED };
     const courses = await prisma.course.findMany({
       where,
       include: courseInclude,
@@ -119,7 +119,7 @@ coursesRouter.post("/", requireAdmin, async (req: AuthRequest, res, next) => {
 });
 
 // GET /api/courses/:slug — public (if PUBLISHED) | admin: any
-coursesRouter.get("/:slug", optionalAdmin, async (req: AuthRequest, res, next) => {
+coursesRouter.get("/:slug", requireCourseAccess, async (req: AuthRequest, res, next) => {
   try {
     const course = await prisma.course.findUnique({
       where: { slug: String(req.params.slug) },
@@ -128,7 +128,7 @@ coursesRouter.get("/:slug", optionalAdmin, async (req: AuthRequest, res, next) =
         author: { select: { name: true, email: true } },
       },
     });
-    if (!course || (course.status !== "PUBLISHED" && !req.user)) {
+    if (!course || (course.status !== "PUBLISHED" && req.user?.role !== "ADMIN")) {
       return res.status(404).json({ error: "Course not found" });
     }
     res.json(course);
@@ -173,10 +173,10 @@ coursesRouter.delete("/:id", requireAdmin, async (req, res, next) => {
 // ── Chapter CRUD ─────────────────────────────────────────────────────────────
 
 // GET /api/courses/:courseId/chapters — ordered chapter list
-coursesRouter.get("/:courseId/chapters", optionalAdmin, async (req: AuthRequest, res, next) => {
+coursesRouter.get("/:courseId/chapters", requireCourseAccess, async (req: AuthRequest, res, next) => {
   try {
     const course = await prisma.course.findUnique({ where: { id: String(req.params.courseId) } });
-    if (!course || (course.status !== "PUBLISHED" && !req.user)) {
+    if (!course || (course.status !== "PUBLISHED" && req.user?.role !== "ADMIN")) {
       return res.status(404).json({ error: "Course not found" });
     }
     const chapters = await prisma.chapter.findMany({
@@ -220,10 +220,10 @@ coursesRouter.post("/:courseId/chapters", requireAdmin, async (req: AuthRequest,
 });
 
 // GET /api/courses/:courseId/chapters/:id — single chapter
-coursesRouter.get("/:courseId/chapters/:id", optionalAdmin, async (req: AuthRequest, res, next) => {
+coursesRouter.get("/:courseId/chapters/:id", requireCourseAccess, async (req: AuthRequest, res, next) => {
   try {
     const course = await prisma.course.findUnique({ where: { id: String(req.params.courseId) } });
-    if (!course || (course.status !== "PUBLISHED" && !req.user)) {
+    if (!course || (course.status !== "PUBLISHED" && req.user?.role !== "ADMIN")) {
       return res.status(404).json({ error: "Course not found" });
     }
     const chapter = await prisma.chapter.findUnique({

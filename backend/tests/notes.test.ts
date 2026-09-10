@@ -9,7 +9,7 @@ vi.mock("cloudinary", () => ({
 
 // Route behavior is tested with a mocked persistence boundary; use a disposable Postgres DB for full integration tests.
 vi.mock("../src/lib/prisma.js", () => ({ prisma: { note: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ id: "note_1", title: "Test note", status: "DRAFT" }) }, attachment: { findFirst: vi.fn().mockResolvedValue(null), delete: vi.fn() }, tag: { findMany: vi.fn() } } }));
-vi.mock("../src/middleware/auth.js", async () => ({ requireAdmin: (req: any, _res: any, next: any) => { req.user = { id: "admin_1", role: "ADMIN" }; next(); }, optionalAdmin: (_req: any, _res: any, next: any) => next() }));
+vi.mock("../src/middleware/auth.js", async () => ({ requireAdmin: (req: any, _res: any, next: any) => { req.user = { id: "admin_1", role: "ADMIN" }; next(); }, optionalAdmin: (_req: any, _res: any, next: any) => next(), requireCourseAccess: (_req: any, _res: any, next: any) => next() }));
 import request from "supertest"; import { app } from "../src/app.js";
 describe("Notes API", () => {
   it("creates a validated note", async () => { const response = await request(app).post("/api/notes").send({ title: "Test note", content: "# Hello", tags: ["testing"] }); expect(response.status).toBe(201); expect(response.body.title).toBe("Test note"); });

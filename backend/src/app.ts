@@ -5,6 +5,7 @@ import { notesRouter } from "./routes/notes.js";
 import { tagsRouter } from "./routes/tags.js";
 import { uploadsRouter } from "./routes/uploads.js";
 import { coursesRouter } from "./routes/courses.js";
+import { courseAccessRouter } from "./routes/courseAccess.js";
 
 const normalizeOrigin = (value: string) => value.trim().replace(/\/$/, "");
 const allowedOrigins = new Set((process.env.WEB_ORIGIN ?? "http://localhost:3000").split(",").map(normalizeOrigin).filter(Boolean));
@@ -26,6 +27,7 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRouter);
+app.use("/api/course-access", courseAccessRouter);
 app.use("/api/notes", notesRouter);
 app.use("/api/tags", tagsRouter);
 app.use("/api/uploads", uploadsRouter);

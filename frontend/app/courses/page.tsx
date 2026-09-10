@@ -1,21 +1,20 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { CourseList } from "../../components/CourseList";
+import { CourseAccessGate, useCourseAccessToken } from "../../components/CourseAccessGate";
 
 const api = process.env.NEXT_PUBLIC_API_URL;
 export const dynamic = "force-dynamic";
 
-export default async function CoursesPage() {
-  let courses = [];
-  if (api) {
-    try {
-      const response = await fetch(`${api}/courses`, { cache: "no-store" });
-      if (response.ok) courses = await response.json();
-      else console.error(`Courses API returned ${response.status}`);
-    } catch (error) {
-      console.error("Courses API is unavailable", error);
-    }
-  } else {
-    console.error("NEXT_PUBLIC_API_URL is not configured");
-  }
+export default function CoursesPage() {
+  return <CourseAccessGate><AuthorizedCourses /></CourseAccessGate>;
+}
+
+function AuthorizedCourses() {
+  const token = useCourseAccessToken();
+  const [courses, setCourses] = useState<any[]>([]);
+  useEffect(() => { if (token) fetch(`${api}/courses`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }).then(r => r.ok ? r.json() : []).then(setCourses).catch(() => setCourses([])); }, [token]);
 
   return (
     <>
