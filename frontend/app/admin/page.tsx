@@ -8,10 +8,11 @@ import { CourseEditor, type EditableCourse } from "../../components/CourseEditor
 import { ChapterEditor, type EditableChapter } from "../../components/ChapterEditor";
 import { AdminCourseList } from "../../components/AdminCourseList";
 import { AdminCourseAccess } from "../../components/AdminCourseAccess";
+import { AdminCacheMonitor } from "../../components/AdminCacheMonitor";
 
 const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
-type ViewState = "dashboard" | "notes" | "editor" | "courses" | "course-editor" | "chapters" | "chapter-editor" | "access";
+type ViewState = "dashboard" | "notes" | "editor" | "courses" | "course-editor" | "chapters" | "chapter-editor" | "access" | "cache";
 
 export default function Admin() {
   const [token, setToken] = useState("");
@@ -213,6 +214,10 @@ export default function Admin() {
         <button className={`admin-nav-btn${view === "access" ? " active" : ""}`} onClick={() => { setView("access"); setMessage(""); }}>
           🔒 Course Access
         </button>
+
+        <button className={`admin-nav-btn${view === "cache" ? " active" : ""}`} onClick={() => { setView("cache"); setMessage(""); }}>
+          ⚡ Cache Monitor
+        </button>
         
         <button className={`admin-nav-btn${view === "course-editor" && !editingCourseId ? " active" : ""}`} onClick={() => { setEditingCourseId(null); setView("course-editor"); setMessage(""); }}>
           + New Course
@@ -240,6 +245,7 @@ export default function Admin() {
         )}
 
         {view === "access" && <AdminCourseAccess token={token} />}
+        {view === "cache" && <AdminCacheMonitor token={token} />}
 
         {/* --- NOTES --- */}
         {view === "notes" && (
