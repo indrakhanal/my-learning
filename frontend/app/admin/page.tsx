@@ -16,6 +16,7 @@ type ViewState = "dashboard" | "notes" | "editor" | "courses" | "course-editor" 
 
 export default function Admin() {
   const [token, setToken] = useState("");
+  const [checkingSession, setCheckingSession] = useState(true);
   const [message, setMessage] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
   const [view, setView] = useState<ViewState>("dashboard");
@@ -36,6 +37,24 @@ export default function Admin() {
   const [expandedChapterIds, setExpandedChapterIds] = useState<Set<string>>(new Set());
   const rootChapters = chapters.filter(chapter => !chapter.parentId);
 
+  function signOut() {
+    window.localStorage.removeItem("token");
+    setToken("");
+    setCheckingSession(false);
+  }
+
+  useEffect(() => {
+    const savedToken = window.localStorage.getItem("token");
+    if (!savedToken) { setCheckingSession(false); return; }
+    fetch(`${api}/auth/me`, { headers: { Authorization: `Bearer ${savedToken}` }, cache: "no-store" })
+      .then(response => {
+        if (!response.ok) { window.localStorage.removeItem("token"); return; }
+        setToken(savedToken);
+      })
+      .catch(() => window.localStorage.removeItem("token"))
+      .finally(() => setCheckingSession(false));
+  }, []);
+
   function toggleChapter(chapterId: string) {
     setExpandedChapterIds(current => {
       const next = new Set(current);
@@ -50,6 +69,7 @@ export default function Admin() {
     try {
       const r = await fetch(`${api}/notes`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setNotes(await r.json());
+      else if (r.status === 401) signOut();
     } catch (e) { console.error(e); }
   }, [token]);
 
@@ -58,6 +78,7 @@ export default function Admin() {
     try {
       const r = await fetch(`${api}/courses`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setCourses(await r.json());
+      else if (r.status === 401) signOut();
     } catch (e) { console.error(e); }
   }, [token]);
 
@@ -66,6 +87,7 @@ export default function Admin() {
     try {
       const r = await fetch(`${api}/courses/${courseId}/chapters`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
       if (r.ok) setChapters(await r.json());
+      else if (r.status === 401) signOut();
     } catch (e) { console.error(e); }
   }, [token]);
 
@@ -148,6 +170,7 @@ export default function Admin() {
         setMessage(json.error ?? "Invalid credentials.");
         return;
       }
+      window.localStorage.setItem("token", json.token);
       setToken(json.token);
     } catch (err) {
       setMessage("Cannot reach the server. Make sure the backend is running.");
@@ -158,6 +181,10 @@ export default function Admin() {
   }
 
   /* ── Login Screen ── */
+  if (checkingSession) {
+    return <div className="login-wrap" aria-busy="true"><p>Checking admin session…</p></div>;
+  }
+
   if (!token) {
     return (
       <div className="login-wrap">
@@ -225,7 +252,7 @@ export default function Admin() {
 
         <div className="admin-sidebar-divider hide-mobile" />
 
-        <button className="admin-nav-logout" onClick={() => setToken("")}>
+        <button className="admin-nav-logout" onClick={signOut}>
           ↩ Sign out
         </button>
       </aside>

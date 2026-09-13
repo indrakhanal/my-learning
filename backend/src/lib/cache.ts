@@ -4,8 +4,8 @@ const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_RE
   ? new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN })
   : null;
 
-const ttlSeconds = Number.parseInt(process.env.REDIS_CACHE_TTL_SECONDS ?? "60", 10);
-const ttl = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds : 60;
+const ttlSeconds = Number.parseInt(process.env.REDIS_CACHE_TTL_SECONDS ?? "3600", 10);
+const ttl = Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds : 3600;
 type CacheStatus = "HIT" | "MISS" | "BYPASS" | "ERROR";
 type CacheEvent = { at: string; key: string; source: "CACHE" | "DATABASE"; status: CacheStatus };
 const metrics = { hits: 0, misses: 0, bypasses: 0, errors: 0, events: [] as CacheEvent[] };

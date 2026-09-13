@@ -59,4 +59,10 @@ describe("Course access API", () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual(expect.objectContaining({ enabled: false, hits: expect.any(Number), misses: expect.any(Number) }));
   });
+
+  it("validates an existing admin session", async () => {
+    const response = await request(app).get("/api/auth/me");
+    expect(response.status).toBe(200);
+    expect(response.body.user.role).toBe("ADMIN");
+  });
 });

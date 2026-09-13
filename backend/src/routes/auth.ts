@@ -3,8 +3,12 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { requireAdmin, type AuthRequest } from "../middleware/auth.js";
 const login = z.object({ email: z.string().email(), password: z.string().min(1) });
 export const authRouter = Router();
+authRouter.get("/me", requireAdmin, (req: AuthRequest, res) => {
+  res.json({ user: req.user });
+});
 authRouter.post("/login", async (req, res, next) => { try {
   const body = login.parse(req.body); const user = await prisma.user.findUnique({ where: { email: body.email } });
   if (!user || !(await bcrypt.compare(body.password, user.passwordHash))) return res.status(401).json({ error: "Invalid email or password" });
