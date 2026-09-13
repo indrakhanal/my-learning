@@ -14,7 +14,25 @@ export default function CourseDetailPage({ params }: { params: { slug: string } 
 function AuthorizedCourse({ slug }: { slug: string }) {
   const token = useCourseAccessToken();
   const [course, setCourse] = useState<any>(null);
-  useEffect(() => { if (token) fetch(`${api}/courses/${slug}`, { headers: courseAccessHeaders(token), cache: "no-store" }).then(r => r.ok ? r.json() : null).then(setCourse).catch(() => setCourse(null)); }, [token, slug]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token || !api) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    fetch(`${api}/courses/${slug}`, { headers: courseAccessHeaders(token), cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(setCourse)
+      .catch(() => setCourse(null))
+      .finally(() => setLoading(false));
+  }, [token, slug]);
+
+  if (loading) {
+    return <div className="content-loader" aria-busy="true" aria-live="polite"><span className="loading-spinner" aria-hidden="true" />Loading course…</div>;
+  }
 
   if (!course) {
     return (

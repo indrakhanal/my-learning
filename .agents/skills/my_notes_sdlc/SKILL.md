@@ -1,5 +1,5 @@
 ---
-name: my_notes_sdlc
+name: "my_notes_sdlc"
 description: >
   Comprehensive SDLC skill for the Personal Learning Notes project.
   Triggers on any request involving: adding features, fixing bugs, writing tests,

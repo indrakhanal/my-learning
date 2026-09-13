@@ -1542,6 +1542,29 @@ main {
 /* ============================================================
    LOGIN FORM
    ============================================================ */
+.content-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  min-height: calc(100vh - var(--header-h) - var(--bottom-nav-h));
+  padding: 2rem 1rem;
+  color: var(--text-muted);
+}
+
+.loading-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: content-loader-spin 0.8s linear infinite;
+}
+
+@keyframes content-loader-spin {
+  to { transform: rotate(360deg); }
+}
+
 .login-wrap {
   display: flex;
   align-items: center;
