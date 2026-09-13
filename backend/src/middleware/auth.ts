@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
-export type AuthUser = { id: string; role: "ADMIN" | "COURSE_VIEWER"; kind?: "COURSE_ACCESS"; accessEmailId?: string };
+export type AuthUser = { id: string; role: "ADMIN" | "COURSE_VIEWER"; kind?: "COURSE_ACCESS"; accessEmailId?: string; sessionId?: string };
 export type AuthRequest = Request & { user?: AuthUser };
 export function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -32,8 +32,11 @@ export async function requireCourseAccess(req: AuthRequest, res: Response, next:
     if (user.kind !== "COURSE_ACCESS" || user.role !== "COURSE_VIEWER" || !user.accessEmailId) return res.status(401).json({ error: "Invalid course access token" });
     const accessEmail = await prisma.courseAccessEmail.findUnique({ where: { id: user.accessEmailId } });
     if (!accessEmail) return res.status(401).json({ error: "Course access has been revoked" });
+    const deviceId = req.headers["x-device-id"];
+    if (!user.sessionId || typeof deviceId !== "string" || accessEmail.activeSessionId !== user.sessionId || accessEmail.activeDeviceId !== deviceId) return res.status(401).json({ error: "This course session was replaced by another device" });
     const expiresAt = accessEmail.expiresAt ?? new Date(accessEmail.createdAt.getTime() + (accessEmail.duration === "MONTH" ? 30 : 365) * 24 * 60 * 60 * 1000);
     if (expiresAt <= new Date()) return res.status(401).json({ error: "Course access has expired" });
+    await prisma.courseAccessEmail.update({ where: { id: accessEmail.id }, data: { lastSeenAt: new Date() } });
     req.user = user;
     return next();
   } catch { return res.status(401).json({ error: "Invalid or expired course access token" }); }

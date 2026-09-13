@@ -18,7 +18,7 @@ const corsOptions: CorsOptions = {
     return callback(new Error(`CORS origin not allowed: ${normalized}`));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Device-ID"],
   optionsSuccessStatus: 204
 };
 

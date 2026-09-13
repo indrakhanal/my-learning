@@ -1,4 +1,5 @@
 import { Router } from "express";
+import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 import { CourseAccessDuration } from "@prisma/client";
 import { z } from "zod";
@@ -7,6 +8,7 @@ import { requireAdmin } from "../middleware/auth.js";
 
 const emailInput = z.object({ email: z.string().trim().email().transform(value => value.toLowerCase()) });
 const accessInput = emailInput.extend({ duration: z.enum(["MONTH", "YEAR"]).default("MONTH") });
+const deviceIdInput = z.string().uuid();
 
 function addDuration(from: Date, duration: CourseAccessDuration) {
   const result = new Date(from);
@@ -23,7 +25,15 @@ export const courseAccessRouter = Router();
 courseAccessRouter.get("/emails", requireAdmin, async (_req, res, next) => {
   try {
     const emails = await prisma.courseAccessEmail.findMany({ orderBy: { createdAt: "desc" } });
-    res.json(emails.map(email => ({ ...email, expiresAt: effectiveExpiry(email) })));
+    res.json(emails.map(email => ({
+      id: email.id,
+      email: email.email,
+      duration: email.duration,
+      expiresAt: effectiveExpiry(email),
+      createdAt: email.createdAt,
+      lastSeenAt: email.lastSeenAt,
+      hasActiveSession: Boolean(email.activeSessionId && email.activeDeviceId),
+    })));
   }
   catch (error) { next(error); }
 });
@@ -47,15 +57,27 @@ courseAccessRouter.delete("/emails/:id", requireAdmin, async (req, res, next) =>
   } catch (error) { next(error); }
 });
 
+courseAccessRouter.post("/emails/:id/reset-session", requireAdmin, async (req, res, next) => {
+  try {
+    const id = String(req.params.id);
+    if (!await prisma.courseAccessEmail.findUnique({ where: { id } })) return res.status(404).json({ error: "Access email not found" });
+    await prisma.courseAccessEmail.update({ where: { id }, data: { activeSessionId: null, activeDeviceId: null, lastSeenAt: null } });
+    res.status(204).end();
+  } catch (error) { next(error); }
+});
+
 courseAccessRouter.post("/verify", async (req, res, next) => {
   try {
     const { email } = emailInput.parse(req.body);
+    const deviceId = deviceIdInput.parse(req.headers["x-device-id"]);
     const accessEmail = await prisma.courseAccessEmail.findUnique({ where: { email } });
     if (!accessEmail) return res.status(403).json({ error: "This email is not registered for course access" });
     const expiresAt = effectiveExpiry(accessEmail);
     if (expiresAt <= new Date()) return res.status(403).json({ error: "This email's course access has expired" });
+    const sessionId = crypto.randomUUID();
+    await prisma.courseAccessEmail.update({ where: { id: accessEmail.id }, data: { activeSessionId: sessionId, activeDeviceId: deviceId, lastSeenAt: new Date() } });
     const token = jwt.sign(
-      { kind: "COURSE_ACCESS", role: "COURSE_VIEWER", accessEmailId: accessEmail.id, email: accessEmail.email },
+      { kind: "COURSE_ACCESS", role: "COURSE_VIEWER", accessEmailId: accessEmail.id, email: accessEmail.email, sessionId },
       process.env.JWT_SECRET!,
       { expiresIn: Math.max(1, Math.floor((expiresAt.getTime() - Date.now()) / 1000)) },
     );
