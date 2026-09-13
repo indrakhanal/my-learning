@@ -75,7 +75,7 @@ To enable the free Upstash setup:
    ```env
    UPSTASH_REDIS_REST_URL=https://your-database.upstash.io
    UPSTASH_REDIS_REST_TOKEN=your-token
-   REDIS_CACHE_TTL_SECONDS=60
+   REDIS_CACHE_TTL_SECONDS=3600
    ```
 
 3. Restart the backend. No Redis server needs to run locally.
