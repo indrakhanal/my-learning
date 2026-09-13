@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { slugify } from "../lib/slug.js";
 import { optionalAdmin, requireAdmin, type AuthRequest } from "../middleware/auth.js";
+import { cacheGet, cacheSet, cacheKeys, invalidateNoteCache } from "../lib/cache.js";
 
 const resourceInput = z.object({ label: z.string().trim().min(1).max(100), url: z.string().url().max(2000) });
 const input = z.object({ title: z.string().trim().min(1).max(180), content: z.string().max(200000), status: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"), tags: z.array(z.string().trim().min(1).max(50)).default([]), resources: z.array(resourceInput).default([]) });
@@ -14,17 +15,33 @@ const tagWrites = (tags: string[]) => ({ create: tags.map(name => ({ tag: { conn
 async function uniqueSlug(title: string) { const base = slugify(title); let slug = base; let sequence = 2; while (await prisma.note.findUnique({ where: { slug } })) slug = `${base}-${sequence++}`; return slug; }
 
 export const notesRouter = Router();
-notesRouter.get("/", optionalAdmin, async (req: AuthRequest, res, next) => { try { const where: any = req.user ? {} : { status: NoteStatus.PUBLISHED }; const tag = typeof req.query.tag === "string" ? req.query.tag : undefined; if (tag) where.tags = { some: { tag: { name: tag } } }; res.json(await prisma.note.findMany({ where, include, orderBy: { updatedAt: "desc" } })); } catch (error) { next(error); } });
-notesRouter.post("/import", requireAdmin, async (req: AuthRequest, res, next) => { try { const raw = z.object({ markdown: z.string().min(1).max(200000), status: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"), tags: z.array(z.string()).default([]) }).parse(req.body); const lines = raw.markdown.trim().split(/\r?\n/); const heading = lines[0]?.match(/^#\s+(.+)/); const title = heading?.[1] ?? "Imported note"; const content = heading ? lines.slice(1).join("\n").trim() : raw.markdown; res.status(201).json(await prisma.note.create({ data: { title, content, slug: await uniqueSlug(title), status: raw.status, authorId: req.user!.id, tags: tagWrites(raw.tags) }, include })); } catch (error) { next(error); } });
-notesRouter.get("/:id", optionalAdmin, async (req: AuthRequest, res, next) => { try { const note = await prisma.note.findUnique({ where: { id: String(req.params.id) }, include }); if (!note || (note.status !== "PUBLISHED" && !req.user)) return res.status(404).json({ error: "Note not found" }); res.json(note); } catch (error) { next(error); } });
-notesRouter.post("/", requireAdmin, async (req: AuthRequest, res, next) => { try { const data = input.parse(req.body); const note = await prisma.note.create({ data: { ...data, slug: await uniqueSlug(data.title), authorId: req.user!.id, tags: tagWrites(data.tags), resources: { create: data.resources } }, include }); res.status(201).json(note); } catch (error) { next(error); } });
-notesRouter.put("/:id", requireAdmin, async (req, res, next) => { try { const data = input.parse(req.body); const old = await prisma.note.findUnique({ where: { id: String(req.params.id) } }); if (!old) return res.status(404).json({ error: "Note not found" }); const note = await prisma.$transaction(async tx => { await tx.noteVersion.create({ data: { noteId: old.id, title: old.title, content: old.content, status: old.status } }); return tx.note.update({ where: { id: old.id }, data: { title: data.title, content: data.content, status: data.status, tags: { deleteMany: {}, ...tagWrites(data.tags) }, resources: { deleteMany: {}, create: data.resources } }, include }); }); res.json(note); } catch (error) { next(error); } });
+notesRouter.get("/", optionalAdmin, async (req: AuthRequest, res, next) => { try {
+  const tag = typeof req.query.tag === "string" ? req.query.tag : undefined;
+  if (!req.user && !tag) { const cached = await cacheGet<unknown[]>(cacheKeys.notesList()); if (cached) return res.json(cached); }
+  const where: any = req.user ? {} : { status: NoteStatus.PUBLISHED };
+  if (tag) where.tags = { some: { tag: { name: tag } } };
+  const notes = await prisma.note.findMany({ where, include, orderBy: { updatedAt: "desc" } });
+  if (!req.user && !tag) await cacheSet(cacheKeys.notesList(), notes);
+  res.json(notes);
+} catch (error) { next(error); } });
+notesRouter.post("/import", requireAdmin, async (req: AuthRequest, res, next) => { try { const raw = z.object({ markdown: z.string().min(1).max(200000), status: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"), tags: z.array(z.string()).default([]) }).parse(req.body); const lines = raw.markdown.trim().split(/\r?\n/); const heading = lines[0]?.match(/^#\s+(.+)/); const title = heading?.[1] ?? "Imported note"; const content = heading ? lines.slice(1).join("\n").trim() : raw.markdown; const note = await prisma.note.create({ data: { title, content, slug: await uniqueSlug(title), status: raw.status, authorId: req.user!.id, tags: tagWrites(raw.tags) }, include }); await invalidateNoteCache(); res.status(201).json(note); } catch (error) { next(error); } });
+notesRouter.get("/:id", optionalAdmin, async (req: AuthRequest, res, next) => { try {
+  const id = String(req.params.id);
+  if (!req.user) { const cached = await cacheGet<unknown>(cacheKeys.note(id)); if (cached) return res.json(cached); }
+  const note = await prisma.note.findUnique({ where: { id }, include });
+  if (!note || (note.status !== "PUBLISHED" && !req.user)) return res.status(404).json({ error: "Note not found" });
+  if (!req.user && note.status === NoteStatus.PUBLISHED) await cacheSet(cacheKeys.note(id), note);
+  res.json(note);
+} catch (error) { next(error); } });
+notesRouter.post("/", requireAdmin, async (req: AuthRequest, res, next) => { try { const data = input.parse(req.body); const note = await prisma.note.create({ data: { ...data, slug: await uniqueSlug(data.title), authorId: req.user!.id, tags: tagWrites(data.tags), resources: { create: data.resources } }, include }); await invalidateNoteCache(); res.status(201).json(note); } catch (error) { next(error); } });
+notesRouter.put("/:id", requireAdmin, async (req, res, next) => { try { const data = input.parse(req.body); const old = await prisma.note.findUnique({ where: { id: String(req.params.id) } }); if (!old) return res.status(404).json({ error: "Note not found" }); const note = await prisma.$transaction(async tx => { await tx.noteVersion.create({ data: { noteId: old.id, title: old.title, content: old.content, status: old.status } }); return tx.note.update({ where: { id: old.id }, data: { title: data.title, content: data.content, status: data.status, tags: { deleteMany: {}, ...tagWrites(data.tags) }, resources: { deleteMany: {}, create: data.resources } }, include }); }); await invalidateNoteCache(old.id); res.json(note); } catch (error) { next(error); } });
 notesRouter.delete("/:id/attachments/:attachmentId", requireAdmin, async (req, res, next) => { try {
   const noteId = String(req.params.id); const attachmentId = String(req.params.attachmentId);
   const attachment = await prisma.attachment.findFirst({ where: { id: attachmentId, noteId } });
   if (!attachment) return res.status(404).json({ error: "Attachment not found" });
   if (process.env.CLOUDINARY_URL) await cloudinary.uploader.destroy(attachment.key, { resource_type: attachment.kind === "IMAGE" ? "image" : "raw", invalidate: true });
   await prisma.attachment.delete({ where: { id: attachment.id } });
+  await invalidateNoteCache(noteId);
   res.status(204).end();
 } catch (error) { next(error); } });
 notesRouter.delete("/:id", requireAdmin, async (req, res, next) => { try {
@@ -32,6 +49,7 @@ notesRouter.delete("/:id", requireAdmin, async (req, res, next) => { try {
   if (!note) return res.status(404).json({ error: "Note not found" });
   if (process.env.CLOUDINARY_URL) await Promise.all(note.attachments.map(attachment => cloudinary.uploader.destroy(attachment.key, { resource_type: attachment.kind === "IMAGE" ? "image" : "raw", invalidate: true })));
   await prisma.note.delete({ where: { id: note.id } });
+  await invalidateNoteCache(note.id);
   res.status(204).end();
 } catch (error) { next(error); } });
 notesRouter.get("/:id/export/markdown", requireAdmin, async (req, res, next) => { try { const note = await prisma.note.findUnique({ where: { id: String(req.params.id) }, include: { resources: true } }); if (!note) return res.status(404).json({ error: "Note not found" }); const links = note.resources.map(resource => `- [${resource.label}](${resource.url})`).join("\n"); res.type("text/markdown").attachment(`${note.slug}.md`).send(`# ${note.title}\n\n${note.content}\n\n${links}`); } catch (error) { next(error); } });

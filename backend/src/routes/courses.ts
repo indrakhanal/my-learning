@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { slugify } from "../lib/slug.js";
 import { requireCourseAccess, requireAdmin, type AuthRequest } from "../middleware/auth.js";
+import { cacheGet, cacheSet, cacheKeys, invalidateChapterCache, invalidateCourseCache } from "../lib/cache.js";
 
 // ── Zod schemas ──────────────────────────────────────────────────────────────
 
@@ -88,12 +89,14 @@ export const coursesRouter = Router();
 // GET /api/courses — public: PUBLISHED only | admin: all
 coursesRouter.get("/", requireCourseAccess, async (req: AuthRequest, res, next) => {
   try {
+    if (req.user?.role !== "ADMIN") { const cached = await cacheGet<unknown[]>(cacheKeys.coursesList); if (cached) return res.json(cached); }
     const where = req.user?.role === "ADMIN" ? {} : { status: CourseStatus.PUBLISHED };
     const courses = await prisma.course.findMany({
       where,
       include: courseInclude,
       orderBy: { updatedAt: "desc" },
     });
+    if (req.user?.role !== "ADMIN") await cacheSet(cacheKeys.coursesList, courses);
     res.json(courses);
   } catch (error) { next(error); }
 });
@@ -114,6 +117,7 @@ coursesRouter.post("/", requireAdmin, async (req: AuthRequest, res, next) => {
       },
       include: courseInclude,
     });
+    await invalidateCourseCache();
     res.status(201).json(course);
   } catch (error) { next(error); }
 });
@@ -121,8 +125,10 @@ coursesRouter.post("/", requireAdmin, async (req: AuthRequest, res, next) => {
 // GET /api/courses/:slug — public (if PUBLISHED) | admin: any
 coursesRouter.get("/:slug", requireCourseAccess, async (req: AuthRequest, res, next) => {
   try {
+    const slug = String(req.params.slug);
+    if (req.user?.role !== "ADMIN") { const cached = await cacheGet<unknown>(cacheKeys.course(slug)); if (cached) return res.json(cached); }
     const course = await prisma.course.findUnique({
-      where: { slug: String(req.params.slug) },
+      where: { slug },
       include: {
         ...courseOutlineInclude,
         author: { select: { name: true, email: true } },
@@ -131,6 +137,7 @@ coursesRouter.get("/:slug", requireCourseAccess, async (req: AuthRequest, res, n
     if (!course || (course.status !== "PUBLISHED" && req.user?.role !== "ADMIN")) {
       return res.status(404).json({ error: "Course not found" });
     }
+    if (req.user?.role !== "ADMIN") await cacheSet(cacheKeys.course(slug), course);
     res.json(course);
   } catch (error) { next(error); }
 });
@@ -156,6 +163,8 @@ coursesRouter.put("/:id", requireAdmin, async (req: AuthRequest, res, next) => {
       },
       include: courseInclude,
     });
+    await invalidateCourseCache(existing.slug, existing.id);
+    if (slug !== existing.slug) await invalidateCourseCache(slug, existing.id);
     res.json(course);
   } catch (error) { next(error); }
 });
@@ -166,6 +175,7 @@ coursesRouter.delete("/:id", requireAdmin, async (req, res, next) => {
     const existing = await prisma.course.findUnique({ where: { id: String(req.params.id) } });
     if (!existing) return res.status(404).json({ error: "Course not found" });
     await prisma.course.delete({ where: { id: String(req.params.id) } });
+    await invalidateCourseCache(existing.slug, existing.id);
     res.status(204).end();
   } catch (error) { next(error); }
 });
@@ -179,11 +189,13 @@ coursesRouter.get("/:courseId/chapters", requireCourseAccess, async (req: AuthRe
     if (!course || (course.status !== "PUBLISHED" && req.user?.role !== "ADMIN")) {
       return res.status(404).json({ error: "Course not found" });
     }
+    if (req.user?.role !== "ADMIN") { const cached = await cacheGet<unknown[]>(cacheKeys.chapters(String(req.params.courseId))); if (cached) return res.json(cached); }
     const chapters = await prisma.chapter.findMany({
       where: { courseId: String(req.params.courseId) },
       orderBy: { order: "asc" },
       include: chapterInclude,
     });
+    if (req.user?.role !== "ADMIN") await cacheSet(cacheKeys.chapters(String(req.params.courseId)), chapters);
     res.json(chapters);
   } catch (error) { next(error); }
 });
@@ -215,6 +227,7 @@ coursesRouter.post("/:courseId/chapters", requireAdmin, async (req: AuthRequest,
       },
       include: chapterInclude,
     });
+    await invalidateChapterCache(courseId, undefined, course.slug);
     res.status(201).json(chapter);
   } catch (error) { next(error); }
 });
@@ -222,17 +235,21 @@ coursesRouter.post("/:courseId/chapters", requireAdmin, async (req: AuthRequest,
 // GET /api/courses/:courseId/chapters/:id — single chapter
 coursesRouter.get("/:courseId/chapters/:id", requireCourseAccess, async (req: AuthRequest, res, next) => {
   try {
-    const course = await prisma.course.findUnique({ where: { id: String(req.params.courseId) } });
+    const courseId = String(req.params.courseId);
+    const chapterId = String(req.params.id);
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (!course || (course.status !== "PUBLISHED" && req.user?.role !== "ADMIN")) {
       return res.status(404).json({ error: "Course not found" });
     }
+    if (req.user?.role !== "ADMIN") { const cached = await cacheGet<unknown>(cacheKeys.chapter(courseId, chapterId)); if (cached) return res.json(cached); }
     const chapter = await prisma.chapter.findUnique({
-      where: { id: String(req.params.id) },
+      where: { id: chapterId },
       include: chapterInclude,
     });
-    if (!chapter || chapter.courseId !== String(req.params.courseId)) {
+    if (!chapter || chapter.courseId !== courseId) {
       return res.status(404).json({ error: "Chapter not found" });
     }
+    if (req.user?.role !== "ADMIN") await cacheSet(cacheKeys.chapter(courseId, chapterId), chapter);
     res.json(chapter);
   } catch (error) { next(error); }
 });
@@ -248,6 +265,7 @@ coursesRouter.put("/:courseId/chapters/:id", requireAdmin, async (req, res, next
     if (data.parentId !== undefined && data.parentId !== existing.parentId) {
       return res.status(400).json({ error: "A chapter's parent cannot be changed after creation" });
     }
+    const course = await prisma.course.findUnique({ where: { id: existing.courseId }, select: { slug: true } });
     const chapter = await prisma.chapter.update({
       where: { id: String(req.params.id) },
       data: {
@@ -257,6 +275,7 @@ coursesRouter.put("/:courseId/chapters/:id", requireAdmin, async (req, res, next
       },
       include: chapterInclude,
     });
+    await invalidateChapterCache(existing.courseId, existing.id, course?.slug);
     res.json(chapter);
   } catch (error) { next(error); }
 });
@@ -270,6 +289,7 @@ coursesRouter.delete("/:courseId/chapters/:id", requireAdmin, async (req, res, n
     }
     const child = await prisma.chapter.findFirst({ where: { parentId: existing.id }, select: { id: true } });
     if (child) return res.status(409).json({ error: "Delete or move this chapter's subchapters first" });
+    const course = await prisma.course.findUnique({ where: { id: existing.courseId }, select: { slug: true } });
     await prisma.chapter.delete({ where: { id: String(req.params.id) } });
     // Re-sequence only the deleted chapter's siblings to remove gaps in order.
     const remaining = await prisma.chapter.findMany({
@@ -282,6 +302,7 @@ coursesRouter.delete("/:courseId/chapters/:id", requireAdmin, async (req, res, n
         prisma.chapter.update({ where: { id: ch.id }, data: { order: idx + 1 } })
       )
     );
+    await invalidateChapterCache(existing.courseId, existing.id, course?.slug);
     res.status(204).end();
   } catch (error) { next(error); }
 });
@@ -294,6 +315,7 @@ coursesRouter.put("/:courseId/chapters/:id/order", requireAdmin, async (req, res
     if (!chapter || chapter.courseId !== String(req.params.courseId)) {
       return res.status(404).json({ error: "Chapter not found" });
     }
+    const course = await prisma.course.findUnique({ where: { id: chapter.courseId }, select: { slug: true } });
     const siblings = await prisma.chapter.findMany({
       where: { courseId: String(req.params.courseId), parentId: chapter.parentId },
       orderBy: { order: "asc" },
@@ -311,6 +333,9 @@ coursesRouter.put("/:courseId/chapters/:id/order", requireAdmin, async (req, res
       prisma.chapter.update({ where: { id: sibling.id }, data: { order: chapter.order } }),
       prisma.chapter.update({ where: { id: chapter.id }, data: { order: sibling.order } }),
     ]);
+
+    await invalidateChapterCache(chapter.courseId, chapter.id, course?.slug);
+    await invalidateChapterCache(chapter.courseId, sibling.id, course?.slug);
 
     res.json({ moved: chapter.id, order: sibling.order });
   } catch (error) { next(error); }

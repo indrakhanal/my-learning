@@ -63,6 +63,25 @@ Visit `http://localhost:3000/admin` and sign in with the `ADMIN_EMAIL` and `ADMI
 
 The interface is responsive and includes a web app manifest plus offline service-worker caching. On your computer, open it in Chrome or Edge and use **Install app** from the browser menu. On a phone connected to the same Wi-Fi, use `http://<your-computer-LAN-IP>:3000` for responsive testing; allow the Windows firewall prompt for Node.js if it appears. PWA installation and service-worker caching on a phone require HTTPS, so they become fully available after a future HTTPS deployment (such as Vercel or Cloudflare Pages).
 
+## Optional free Redis cache
+
+The backend uses an optional cache-aside layer backed by Upstash Redis. PostgreSQL remains the source of truth; if Redis is not configured or temporarily unavailable, requests automatically fall back to PostgreSQL. Public note, course, chapter, and tag GET responses are cached briefly, and admin writes invalidate the affected cache entries.
+
+To enable the free Upstash setup:
+
+1. Create a Redis database at [Upstash](https://upstash.com/).
+2. Copy its REST URL and token into `backend/.env`:
+
+   ```env
+   UPSTASH_REDIS_REST_URL=https://your-database.upstash.io
+   UPSTASH_REDIS_REST_TOKEN=your-token
+   REDIS_CACHE_TTL_SECONDS=60
+   ```
+
+3. Restart the backend. No Redis server needs to run locally.
+
+The cache is deliberately not used for admin responses or unpublished content. Keep the Redis URL and token backend-only; never put them in `NEXT_PUBLIC_*` variables.
+
 ## REST API
 
 | Method | Endpoint | Purpose |
