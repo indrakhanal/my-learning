@@ -53,4 +53,10 @@ describe("Course access API", () => {
     const response = await request(app).get("/api/course-access/emails");
     expect(response.status).toBe(200);
   });
+
+  it("exposes cache status to admins", async () => {
+    const response = await request(app).get("/api/cache/status");
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(expect.objectContaining({ enabled: false, hits: expect.any(Number), misses: expect.any(Number) }));
+  });
 });

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { slugify } from "../lib/slug.js";
 import { requireCourseAccess, requireAdmin, type AuthRequest } from "../middleware/auth.js";
-import { cacheGet, cacheSet, cacheKeys, invalidateChapterCache, invalidateCourseCache } from "../lib/cache.js";
+import { cacheGetWithStatus, cacheSet, cacheKeys, invalidateChapterCache, invalidateCourseCache } from "../lib/cache.js";
 
 // ── Zod schemas ──────────────────────────────────────────────────────────────
 
@@ -89,7 +89,7 @@ export const coursesRouter = Router();
 // GET /api/courses — public: PUBLISHED only | admin: all
 coursesRouter.get("/", requireCourseAccess, async (req: AuthRequest, res, next) => {
   try {
-    if (req.user?.role !== "ADMIN") { const cached = await cacheGet<unknown[]>(cacheKeys.coursesList); if (cached) return res.json(cached); }
+    if (req.user?.role !== "ADMIN") { const cached = await cacheGetWithStatus<unknown[]>(cacheKeys.coursesList); res.setHeader("X-Cache-Status", cached.status); if (cached.value) return res.json(cached.value); }
     const where = req.user?.role === "ADMIN" ? {} : { status: CourseStatus.PUBLISHED };
     const courses = await prisma.course.findMany({
       where,
@@ -126,7 +126,7 @@ coursesRouter.post("/", requireAdmin, async (req: AuthRequest, res, next) => {
 coursesRouter.get("/:slug", requireCourseAccess, async (req: AuthRequest, res, next) => {
   try {
     const slug = String(req.params.slug);
-    if (req.user?.role !== "ADMIN") { const cached = await cacheGet<unknown>(cacheKeys.course(slug)); if (cached) return res.json(cached); }
+    if (req.user?.role !== "ADMIN") { const cached = await cacheGetWithStatus<unknown>(cacheKeys.course(slug)); res.setHeader("X-Cache-Status", cached.status); if (cached.value) return res.json(cached.value); }
     const course = await prisma.course.findUnique({
       where: { slug },
       include: {
@@ -189,7 +189,7 @@ coursesRouter.get("/:courseId/chapters", requireCourseAccess, async (req: AuthRe
     if (!course || (course.status !== "PUBLISHED" && req.user?.role !== "ADMIN")) {
       return res.status(404).json({ error: "Course not found" });
     }
-    if (req.user?.role !== "ADMIN") { const cached = await cacheGet<unknown[]>(cacheKeys.chapters(String(req.params.courseId))); if (cached) return res.json(cached); }
+    if (req.user?.role !== "ADMIN") { const cached = await cacheGetWithStatus<unknown[]>(cacheKeys.chapters(String(req.params.courseId))); res.setHeader("X-Cache-Status", cached.status); if (cached.value) return res.json(cached.value); }
     const chapters = await prisma.chapter.findMany({
       where: { courseId: String(req.params.courseId) },
       orderBy: { order: "asc" },
@@ -241,7 +241,7 @@ coursesRouter.get("/:courseId/chapters/:id", requireCourseAccess, async (req: Au
     if (!course || (course.status !== "PUBLISHED" && req.user?.role !== "ADMIN")) {
       return res.status(404).json({ error: "Course not found" });
     }
-    if (req.user?.role !== "ADMIN") { const cached = await cacheGet<unknown>(cacheKeys.chapter(courseId, chapterId)); if (cached) return res.json(cached); }
+    if (req.user?.role !== "ADMIN") { const cached = await cacheGetWithStatus<unknown>(cacheKeys.chapter(courseId, chapterId)); res.setHeader("X-Cache-Status", cached.status); if (cached.value) return res.json(cached.value); }
     const chapter = await prisma.chapter.findUnique({
       where: { id: chapterId },
       include: chapterInclude,

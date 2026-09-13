@@ -6,7 +6,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { slugify } from "../lib/slug.js";
 import { optionalAdmin, requireAdmin, type AuthRequest } from "../middleware/auth.js";
-import { cacheGet, cacheSet, cacheKeys, invalidateNoteCache } from "../lib/cache.js";
+import { cacheGetWithStatus, cacheSet, cacheKeys, invalidateNoteCache } from "../lib/cache.js";
 
 const resourceInput = z.object({ label: z.string().trim().min(1).max(100), url: z.string().url().max(2000) });
 const input = z.object({ title: z.string().trim().min(1).max(180), content: z.string().max(200000), status: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"), tags: z.array(z.string().trim().min(1).max(50)).default([]), resources: z.array(resourceInput).default([]) });
@@ -17,7 +17,7 @@ async function uniqueSlug(title: string) { const base = slugify(title); let slug
 export const notesRouter = Router();
 notesRouter.get("/", optionalAdmin, async (req: AuthRequest, res, next) => { try {
   const tag = typeof req.query.tag === "string" ? req.query.tag : undefined;
-  if (!req.user && !tag) { const cached = await cacheGet<unknown[]>(cacheKeys.notesList()); if (cached) return res.json(cached); }
+  if (!req.user && !tag) { const cached = await cacheGetWithStatus<unknown[]>(cacheKeys.notesList()); res.setHeader("X-Cache-Status", cached.status); if (cached.value) return res.json(cached.value); }
   const where: any = req.user ? {} : { status: NoteStatus.PUBLISHED };
   if (tag) where.tags = { some: { tag: { name: tag } } };
   const notes = await prisma.note.findMany({ where, include, orderBy: { updatedAt: "desc" } });
@@ -27,7 +27,7 @@ notesRouter.get("/", optionalAdmin, async (req: AuthRequest, res, next) => { try
 notesRouter.post("/import", requireAdmin, async (req: AuthRequest, res, next) => { try { const raw = z.object({ markdown: z.string().min(1).max(200000), status: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"), tags: z.array(z.string()).default([]) }).parse(req.body); const lines = raw.markdown.trim().split(/\r?\n/); const heading = lines[0]?.match(/^#\s+(.+)/); const title = heading?.[1] ?? "Imported note"; const content = heading ? lines.slice(1).join("\n").trim() : raw.markdown; const note = await prisma.note.create({ data: { title, content, slug: await uniqueSlug(title), status: raw.status, authorId: req.user!.id, tags: tagWrites(raw.tags) }, include }); await invalidateNoteCache(); res.status(201).json(note); } catch (error) { next(error); } });
 notesRouter.get("/:id", optionalAdmin, async (req: AuthRequest, res, next) => { try {
   const id = String(req.params.id);
-  if (!req.user) { const cached = await cacheGet<unknown>(cacheKeys.note(id)); if (cached) return res.json(cached); }
+  if (!req.user) { const cached = await cacheGetWithStatus<unknown>(cacheKeys.note(id)); res.setHeader("X-Cache-Status", cached.status); if (cached.value) return res.json(cached.value); }
   const note = await prisma.note.findUnique({ where: { id }, include });
   if (!note || (note.status !== "PUBLISHED" && !req.user)) return res.status(404).json({ error: "Note not found" });
   if (!req.user && note.status === NoteStatus.PUBLISHED) await cacheSet(cacheKeys.note(id), note);
