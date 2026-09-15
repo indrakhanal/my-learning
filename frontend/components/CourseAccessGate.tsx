@@ -50,6 +50,7 @@ export function CourseAccessGate({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [accessError, setAccessError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -58,9 +59,17 @@ export function CourseAccessGate({ children }: { children: React.ReactNode }) {
     fetch(`${api}/courses`, { headers: courseAccessHeaders(saved), cache: "no-store" })
       .then(response => {
         if (response.ok) setToken(saved);
-        else window.localStorage.removeItem(storageKey);
+        else {
+          window.localStorage.removeItem(storageKey);
+          setAccessError(response.status === 401 || response.status === 403
+            ? "Your course access has expired. Please verify your email again."
+            : "We couldn't verify your course access. Please try again.");
+        }
       })
-      .catch(() => window.localStorage.removeItem(storageKey))
+      .catch(() => {
+        window.localStorage.removeItem(storageKey);
+        setAccessError("Cannot reach the course service. Please try again.");
+      })
       .finally(() => setChecking(false));
   }, []);
 
@@ -79,7 +88,7 @@ export function CourseAccessGate({ children }: { children: React.ReactNode }) {
     finally { setSubmitting(false); }
   }
 
-  if (checking) return <div className="login-wrap" aria-busy="true"><p>Checking course access…</p></div>;
+  if (checking) return <div className="access-check-state" aria-busy="true" aria-live="polite"><span className="loading-spinner" aria-hidden="true" /><p>Checking course access…</p></div>;
   if (!token) return (
     <div className="login-wrap">
       <div className="glass-card login-card fade-in">
@@ -88,7 +97,7 @@ export function CourseAccessGate({ children }: { children: React.ReactNode }) {
           <label htmlFor="course-access-email">Email address<input id="course-access-email" type="email" value={email} onChange={event => setEmail(event.target.value)} required autoComplete="email" /></label>
           <button type="submit" className="btn-primary" disabled={submitting}>{submitting ? "Checking…" : "Continue →"}</button>
         </form>
-        {message && <p className="login-error" role="alert">{message}</p>}
+        {(accessError || message) && <p className="login-error" role="alert">{accessError || message}</p>}
       </div>
     </div>
   );
